@@ -15,7 +15,9 @@ use crate::AppState;
 pub const LABEL: &str = "overlay";
 /// Logical sizes.
 const COMPACT: (f64, f64) = (156.0, 130.0);
-const EXPANDED: (f64, f64) = (500.0, 430.0);
+const EXPANDED: (f64, f64) = (520.0, 540.0);
+/// The eye (and its summoning circle) sits centred in this box, bottom-right of the expanded window.
+const EYE_BOX: (f64, f64) = (260.0, 250.0);
 const MARGIN: f64 = 12.0;
 
 #[derive(Serialize, Clone, Copy, Debug, PartialEq, Eq)]
@@ -81,9 +83,10 @@ pub fn set_mode(app: &AppHandle, mode: Mode) {
         Mode::Compact => (cw, ch, cx, cy),
         _ => {
             let (ew, eh) = ((EXPANDED.0 * scale) as i32, (EXPANDED.1 * scale) as i32);
-            // Keep the eye where it is; the bubble opens up/left of it.
-            let x = clamp(cx + cw - ew, ax, ax + aw - ew);
-            let y = clamp(cy + ch - eh, ay, ay + ah - eh);
+            let (bw, bh) = ((EYE_BOX.0 * scale) as i32, (EYE_BOX.1 * scale) as i32);
+            // Keep the eye's centre where the compact eye was; the bubble opens up/left of it.
+            let x = clamp(cx + cw / 2 - (ew - bw / 2), ax, ax + aw - ew);
+            let y = clamp(cy + ch / 2 - (eh - bh / 2), ay, ay + ah - eh);
             (ew, eh, x, y)
         }
     };

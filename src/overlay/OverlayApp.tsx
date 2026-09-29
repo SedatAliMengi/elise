@@ -5,6 +5,7 @@ import { AnimatePresence } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import CommandPanel from "../components/CommandPanel";
 import Eye from "../components/Eye";
+import SummonCircle, { type RitualPhase } from "../components/SummonCircle";
 import { api, on } from "../lib/api";
 import { fmtTime, fmtUntil, fromNaive, spokenTime } from "../lib/dates";
 import { speak } from "../lib/speech";
@@ -29,6 +30,11 @@ export default function OverlayApp() {
   const [session, setSession] = useState<Session | null>(null);
   const [queue, setQueue] = useState<ReminderPayload[]>([]);
   const [level, setLevel] = useState(0);
+  const [ritual, setRitual] = useState<RitualPhase>("off");
+  const [ritualKey, setRitualKey] = useState(0);
+  const ritualTimer = useRef<number | undefined>(undefined);
+  const eyeRef = useRef(eye);
+  eyeRef.current = eye;
   const vanishing = useRef(false);
   const keyRef = useRef(0);
   const modeRef = useRef(mode);
@@ -75,6 +81,22 @@ export default function OverlayApp() {
       offs.forEach((f) => f());
     };
   }, [pullReminders, startSession]);
+
+  /** Play a ritual phase for `ms`, then settle back (faint ring while thinking). */
+  const playRitual = useCallback((p: RitualPhase, ms: number) => {
+    clearTimeout(ritualTimer.current);
+    if (p === "summon") setRitualKey((k) => k + 1);
+    setRitual(p);
+    ritualTimer.current = window.setTimeout(() => setRitual(eyeRef.current === "thinking" ? "think" : "off"), ms);
+  }, []);
+
+  // The summoning circle follows the eye.
+  useEffect(() => {
+    if (eye === "appearing") playRitual("summon", 2800);
+    else if (eye === "vanishing") playRitual("dismiss", 450);
+    else if (eye === "thinking") setRitual((r) => (r === "summon" ? r : "think"));
+    else setRitual((r) => (r === "think" ? "off" : r));
+  }, [eye, playRitual]);
 
   // Show the eye opening whenever the window expands from nothing.
   useEffect(() => {
@@ -146,6 +168,7 @@ export default function OverlayApp() {
       down.current = null;
       if (d && !d.dragging && modeRef.current === "compact") {
         api.overlayExpand();
+        playRitual("summon", 2800);
         setEye("listening");
         startSession(true);
       }
@@ -156,7 +179,7 @@ export default function OverlayApp() {
       window.removeEventListener("mousemove", move);
       window.removeEventListener("mouseup", up);
     };
-  }, [startSession]);
+  }, [startSession, playRitual]);
 
   const onEyeContext = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -190,7 +213,7 @@ export default function OverlayApp() {
               key={session.key}
               settings={settings}
               greet={session.greet}
-              autoListen={session.voice}
+              voiceSummoned={session.voice}
               placement="overlay"
               onEyeState={setEye}
               onLevel={setLevel}
@@ -215,7 +238,8 @@ export default function OverlayApp() {
         </AnimatePresence>
       </div>
       <div className="overlay__eye">
-        <Eye state={eye} size={146} level={level} onClick={() => !session && startSession(true)} title="Elise" />
+        <SummonCircle key={ritualKey} phase={ritual} size={250} />
+        <Eye state={eye} size={146} level={level} appearDelay={0.65} onClick={() => !session && startSession(true)} title="Elise" />
       </div>
     </div>
   );

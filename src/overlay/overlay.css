@@ -17,8 +17,8 @@
   position: absolute;
   right: 0;
   bottom: 0;
-  width: 156px;
-  height: 130px;
+  width: 260px;
+  height: 250px;
   display: grid;
   place-items: center;
 }
@@ -26,13 +26,13 @@
 .overlay__stack {
   position: absolute;
   right: 14px;
-  bottom: 118px;
+  bottom: 214px;
   left: 14px;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
   justify-content: flex-end;
-  max-height: calc(100% - 124px);
+  max-height: calc(100% - 220px);
 }
 
 /* ---------- reminder card ---------- */
@@ -52,7 +52,7 @@
 .rem::after {
   content: "";
   position: absolute;
-  right: 62px;
+  right: 122px;
   bottom: -8px;
   width: 14px;
   height: 14px;

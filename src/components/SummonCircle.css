@@ -1,0 +1,48 @@
+.ritual {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+  pointer-events: none;
+}
+.ritual svg {
+  display: block;
+  overflow: visible;
+}
+.ritual__runes {
+  font-family: "Segoe UI Historic", "Segoe UI Symbol", serif;
+  letter-spacing: 0;
+}
+.ritual__spin {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.ritual__spin--cw {
+  animation: ritual-spin 14s linear infinite;
+}
+.ritual__spin--ccw {
+  animation: ritual-spin 10s linear infinite reverse;
+}
+.ritual--summon .ritual__spin--cw {
+  animation-duration: 6s;
+}
+.ritual--summon .ritual__spin--ccw {
+  animation-duration: 4.5s;
+}
+.ritual__rays {
+  animation: ritual-flicker 1.6s ease-in-out infinite;
+}
+@keyframes ritual-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes ritual-flicker {
+  0%,
+  100% {
+    opacity: 0.85;
+  }
+  50% {
+    opacity: 1;
+  }
+}

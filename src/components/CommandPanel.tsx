@@ -19,21 +19,24 @@ interface Props {
   onLevel?: (v: number) => void;
   /** Elise is finished; the host should close/vanish. */
   onFinish: () => void;
-  /** Summoned by voice: start listening right after the greeting. */
-  autoListen?: boolean;
+  /** Summoned by "Hey Elise": keep the whole conversation hands-free. */
+  voiceSummoned?: boolean;
 }
 
 const INACTIVITY_MS = 20_000;
 
-export default function CommandPanel({ settings, greet = true, placement, onEyeState, onLevel, onFinish, autoListen }: Props) {
+export default function CommandPanel({ settings, greet = true, placement, onEyeState, onLevel, onFinish, voiceSummoned }: Props) {
   const greeting = `Hello ${settings.userName || "Enigma"}, what is your command?`;
   const voice = useVoiceStatus();
+  const voiceRef = useRef(voice);
+  voiceRef.current = voice;
   const [phase, setPhase] = useState<Phase>("input");
   const [bubble, setBubble] = useState(greet ? greeting : "What is your command?");
   const [summary, setSummary] = useState<string[]>([]);
   const [historyId, setHistoryId] = useState<string | null>(null);
   const [text, setText] = useState("");
   const [mic, setMic] = useState<Mic>("off");
+  const phaseRef = useRef<Phase>("input");
   const inputRef = useRef<HTMLInputElement>(null);
   const session = useRef(newSessionId());
   const hovered = useRef(false);
@@ -43,7 +46,7 @@ export default function CommandPanel({ settings, greet = true, placement, onEyeS
   const micRef = useRef<Mic>("off");
   micRef.current = mic;
   /** The conversation is being held by voice: keep listening after questions. */
-  const voiceMode = useRef(!!autoListen);
+  const voiceMode = useRef(!!voiceSummoned);
   const settingsRef = useRef(settings);
   settingsRef.current = settings;
 
@@ -105,8 +108,14 @@ export default function CommandPanel({ settings, greet = true, placement, onEyeS
     onEyeState(greet ? "appearing" : "idle");
     const t = window.setTimeout(() => onEyeState("listening"), greet ? 550 : 0);
     const spoken = greet ? speak(greeting, voiceOpts(settingsRef.current)) : Promise.resolve();
-    if (autoListen) spoken.then(() => startMic());
-    else inputRef.current?.focus();
+    // Always ready for both: the mic listens right after the greeting, and
+    // typing into the box stops the mic.
+    inputRef.current?.focus();
+    spoken.then(() => {
+      // Don't open the mic if they already started typing during the greeting.
+      const typing = !!inputRef.current?.value.trim();
+      if (voiceRef.current.available && !finished.current && phaseRef.current === "input" && !typing) startMic();
+    });
     bumpIdle();
     return () => {
       clearTimeout(t);
@@ -137,7 +146,11 @@ export default function CommandPanel({ settings, greet = true, placement, onEyeS
             onLevel?.(0);
             const heard = (e.text ?? "").trim();
             if (heard) submit(heard);
-            else {
+            else if (!voiceMode.current) {
+              // Nobody spoke (maybe they're about to type): stop quietly.
+              onEyeState("listening");
+              inputRef.current?.focus();
+            } else {
               setBubble("I didn't hear anything. Say it again, or type it.");
               onEyeState("listening");
               inputRef.current?.focus();
@@ -261,6 +274,7 @@ export default function CommandPanel({ settings, greet = true, placement, onEyeS
     }
   };
 
+  phaseRef.current = phase;
   const showInput = phase !== "done" && phase !== "undone" && phase !== "answer";
   const echo = phase === "thinking";
   const placeholder =

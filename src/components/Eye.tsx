@@ -30,9 +30,11 @@ interface Props {
   onContextMenu?: (e: React.MouseEvent) => void;
   title?: string;
   className?: string;
+  /** Seconds to wait before opening on "appearing" (e.g. after a summoning circle). */
+  appearDelay?: number;
 }
 
-export default function Eye({ state, size = 140, level = 0, dim, onClick, onMouseDown, onContextMenu, title, className }: Props) {
+export default function Eye({ state, size = 140, level = 0, dim, onClick, onMouseDown, onContextMenu, title, className, appearDelay = 0 }: Props) {
   const uid = useId().replace(/[^a-zA-Z0-9]/g, "");
   const id = (n: string) => `${n}-${uid}`;
 
@@ -52,7 +54,7 @@ export default function Eye({ state, size = 140, level = 0, dim, onClick, onMous
   useEffect(() => {
     if (state === "appearing") {
       open.set(0.04);
-      const c = animate(open, 1, { duration: 0.55, ease: [0.22, 1, 0.36, 1], delay: 0.12 });
+      const c = animate(open, 1, { duration: 0.55, ease: [0.22, 1, 0.36, 1], delay: 0.12 + appearDelay });
       return () => c.stop();
     }
     if (state === "vanishing") {
@@ -67,7 +69,7 @@ export default function Eye({ state, size = 140, level = 0, dim, onClick, onMous
       const c = animate(open, 1, { duration: 0.35 });
       return () => c.stop();
     }
-  }, [state, open]);
+  }, [state, open, appearDelay]);
 
   // Natural blinking.
   useEffect(() => {
@@ -119,7 +121,7 @@ export default function Eye({ state, size = 140, level = 0, dim, onClick, onMous
       style={{ width: size, height: size * ASPECT }}
       initial={false}
       animate={{ opacity: state === "vanishing" || state === "closed" ? 0 : 1, scale: state === "vanishing" ? 0.92 : state === "appearing" ? [0.9, 1] : 1 }}
-      transition={{ duration: state === "vanishing" ? 0.3 : 0.45, delay: state === "vanishing" ? 0.18 : 0, ease: [0.22, 1, 0.36, 1] }}
+      transition={{ duration: state === "vanishing" ? 0.3 : 0.45, delay: state === "vanishing" ? 0.18 : state === "appearing" ? appearDelay : 0, ease: [0.22, 1, 0.36, 1] }}
       onClick={onClick}
       onMouseDown={onMouseDown}
       onContextMenu={onContextMenu}
