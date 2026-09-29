@@ -7,7 +7,6 @@ use serde::{Deserialize, Serialize};
 pub struct Settings {
     pub user_name: String,
     pub voice_responses: bool,
-    pub voice_name: Option<String>,
     pub voice_rate: f32,
     pub wake_word: bool,
     pub hotkey: String,
@@ -26,7 +25,6 @@ impl Default for Settings {
         Self {
             user_name: "Enigma".into(),
             voice_responses: true,
-            voice_name: None,
             voice_rate: 1.0,
             wake_word: true,
             hotkey: "Ctrl+Alt+E".into(),

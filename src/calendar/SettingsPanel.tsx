@@ -1,7 +1,7 @@
 import { motion } from "motion/react";
 import { useEffect, useState } from "react";
 import { api } from "../lib/api";
-import { englishVoices, speak } from "../lib/speech";
+import { speak } from "../lib/speech";
 import type { Settings } from "../lib/types";
 import { useVoiceStatus } from "../lib/useSettings";
 
@@ -36,14 +36,12 @@ export default function SettingsPanel({ settings, onClose }: Props) {
   const [keyInput, setKeyInput] = useState("");
   const [keyMsg, setKeyMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
-  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [capturing, setCapturing] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const voice = useVoiceStatus();
 
   useEffect(() => {
     api.hasApiKey().then(setHasKey);
-    englishVoices().then(setVoices);
     const k = (e: KeyboardEvent) => e.key === "Escape" && !capturing && onClose();
     window.addEventListener("keydown", k);
     return () => window.removeEventListener("keydown", k);
@@ -184,23 +182,13 @@ export default function SettingsPanel({ settings, onClose }: Props) {
             {settings.voiceResponses && (
               <>
                 <div className="set-row">
-                  <div className="set-row__label">Voice</div>
-                  <div className="dt">
-                    <select className="input" value={settings.voiceName ?? ""} onChange={(e) => update({ voiceName: e.target.value || null })}>
-                      <option value="">Automatic</option>
-                      {voices.map((v) => (
-                        <option key={v.name} value={v.name}>
-                          {v.name.replace(/^Microsoft /, "").replace(/ - English.*$/, "")}
-                        </option>
-                      ))}
-                    </select>
-                    <button
-                      className="btn"
-                      onClick={() => speak(`Hello ${settings.userName}, what is your command?`, { enabled: true, voiceName: settings.voiceName, rate: settings.voiceRate })}
-                    >
-                      ▶
-                    </button>
+                  <div>
+                    <div className="set-row__label">Voice</div>
+                    <div className="set-row__hint">Heart · offline</div>
                   </div>
+                  <button className="btn" onClick={() => speak(`Hello ${settings.userName}, what is your command?`, { enabled: true })} disabled={!voice.available}>
+                    ▶ Preview
+                  </button>
                 </div>
                 <div className="set-row">
                   <div className="set-row__label">Speed</div>

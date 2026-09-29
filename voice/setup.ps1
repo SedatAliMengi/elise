@@ -1,4 +1,4 @@
-# Sets up Elise's offline voice engine (one time, ~300 MB download):
+# Sets up Elise's offline voice engine (one time, ~600 MB download):
 #   powershell -ExecutionPolicy Bypass -File voice\setup.ps1
 # Creates voice\.venv, installs the libraries, and pre-downloads both speech
 # models into Elise's data folder so the first "Hey Elise" is instant.
@@ -34,7 +34,12 @@ if not os.path.isdir(os.path.join(models, name)):
 print('  speech-to-text model (~145 MB)...')
 from faster_whisper import WhisperModel
 WhisperModel('base.en', device='cpu', compute_type='int8', download_root=os.path.join(models, 'whisper'))
+print('  Elise voice (310 MB)...')
+sys.path.insert(0, os.path.dirname(os.path.abspath(sys.argv[2])))
+import elise_voice
+elise_voice.emit = lambda **k: None
+elise_voice.Speaker(models).ensure()
 print('Done.')
-"@ $models
+"@ $models (Join-Path $root "elise_voice.py")
 
 Write-Host "Voice engine ready. Restart Elise (tray > Quit, then open it again)."

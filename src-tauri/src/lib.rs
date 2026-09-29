@@ -116,6 +116,9 @@ pub fn apply_settings(app: &AppHandle, next: Settings) -> CmdResult<Settings> {
     if prev.hover_mode != next.hover_mode && overlay::mode(app) != Mode::Expanded {
         overlay::set_mode(app, overlay::resting_mode(app));
     }
+    if prev.user_name != next.user_name || prev.voice_rate != next.voice_rate {
+        voice::prewarm(app);
+    }
     if prev.wake_word != next.wake_word {
         voice::set_wake(app, next.wake_word);
     }
@@ -313,6 +316,17 @@ fn voice_cancel(app: AppHandle) {
     voice::cancel(&app);
 }
 
+/// Returns false when the voice engine isn't running (nothing will be said).
+#[tauri::command]
+fn voice_speak(app: AppHandle, id: u64, text: String) -> bool {
+    voice::speak(&app, id, &text)
+}
+
+#[tauri::command]
+fn voice_stop_speaking(app: AppHandle) {
+    voice::stop_speaking(&app);
+}
+
 #[tauri::command]
 fn voice_status(app: AppHandle) -> voice::VoiceStatus {
     voice::status(&app)
@@ -443,6 +457,8 @@ pub fn run() {
             voice_listen,
             voice_cancel,
             voice_status,
+            voice_speak,
+            voice_stop_speaking,
             show_calendar,
             hide_calendar,
             is_calendar_visible,

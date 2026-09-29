@@ -47,7 +47,6 @@ export type Scope = "this" | "following" | "all";
 export interface Settings {
   userName: string;
   voiceResponses: boolean;
-  voiceName: string | null;
   voiceRate: number;
   wakeWord: boolean;
   hotkey: string;

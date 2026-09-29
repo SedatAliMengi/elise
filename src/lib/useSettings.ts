@@ -5,7 +5,6 @@ import type { Settings, VoiceStatus } from "./types";
 export const DEFAULT_SETTINGS: Settings = {
   userName: "Enigma",
   voiceResponses: true,
-  voiceName: null,
   voiceRate: 1,
   wakeWord: true,
   hotkey: "Ctrl+Alt+E",
@@ -28,7 +27,7 @@ export function useSettings(): Settings {
   return s;
 }
 
-export const voiceOpts = (s: Settings) => ({ enabled: s.voiceResponses, voiceName: s.voiceName, rate: s.voiceRate });
+export const voiceOpts = (s: Settings) => ({ enabled: s.voiceResponses });
 
 /** Whether the offline voice engine is running (and any status message). */
 export function useVoiceStatus(): VoiceStatus {

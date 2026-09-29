@@ -1,73 +1,50 @@
 /**
- * Elise's spoken voice. Everything goes through speak(), so the feature can be
- * switched off (Settings → Voice responses) or removed without touching callers.
- * Uses the Windows voices exposed through WebView2's speechSynthesis.
+ * Elise's spoken voice: Kokoro "Heart", rendered offline by the voice engine.
+ * Everything goes through speak(), so voice output can be switched off
+ * (Settings → Voice responses) or removed without touching callers.
+ * If the voice engine isn't running she simply stays silent.
  */
-
-let voicesCache: SpeechSynthesisVoice[] = [];
-
-function loadVoices(): Promise<SpeechSynthesisVoice[]> {
-  if (!("speechSynthesis" in window)) return Promise.resolve([]);
-  const v = speechSynthesis.getVoices();
-  if (v.length) {
-    voicesCache = v;
-    return Promise.resolve(v);
-  }
-  return new Promise((resolve) => {
-    const done = () => {
-      voicesCache = speechSynthesis.getVoices();
-      resolve(voicesCache);
-    };
-    speechSynthesis.addEventListener("voiceschanged", done, { once: true });
-    setTimeout(done, 1500);
-  });
-}
-
-export async function englishVoices(): Promise<SpeechSynthesisVoice[]> {
-  const all = await loadVoices();
-  return all.filter((v) => v.lang.toLowerCase().startsWith("en"));
-}
-
-const PREFERRED = ["aria", "jenny", "ava", "emma", "michelle", "sonia", "libby", "zira", "hazel", "susan"];
-
-function pickVoice(name: string | null): SpeechSynthesisVoice | undefined {
-  const en = voicesCache.filter((v) => v.lang.toLowerCase().startsWith("en"));
-  if (name) {
-    const exact = en.find((v) => v.name === name);
-    if (exact) return exact;
-  }
-  for (const p of PREFERRED) {
-    const v = en.find((x) => x.name.toLowerCase().includes(p));
-    if (v) return v;
-  }
-  return en[0];
-}
+import { invoke } from "@tauri-apps/api/core";
+import { on } from "./api";
 
 export interface VoiceOptions {
   enabled: boolean;
-  voiceName: string | null;
-  rate: number;
 }
 
-/** Speak `text`; resolves when finished (or immediately when disabled). */
-export async function speak(text: string, opts: VoiceOptions): Promise<void> {
-  if (!opts.enabled || !text.trim() || !("speechSynthesis" in window)) return;
-  await loadVoices();
-  speechSynthesis.cancel();
-  return new Promise((resolve) => {
-    const u = new SpeechSynthesisUtterance(text);
-    const v = pickVoice(opts.voiceName);
-    if (v) u.voice = v;
-    u.rate = opts.rate || 1;
-    u.pitch = 1.05;
-    u.onend = () => resolve();
-    u.onerror = () => resolve();
-    speechSynthesis.speak(u);
-    // Safety net: never block the UI on a stuck utterance.
-    setTimeout(resolve, 2000 + text.length * 90);
+let nextId = 1;
+const waiting = new Map<number, () => void>();
+let subscribed = false;
+
+function subscribe() {
+  if (subscribed) return;
+  subscribed = true;
+  on<number>("voice-spoken", (id) => {
+    waiting.get(id)?.();
+    waiting.delete(id);
   });
 }
 
+/** Speak `text`; resolves when she has finished (or right away if silent). */
+export async function speak(text: string, opts: VoiceOptions): Promise<void> {
+  if (!opts.enabled || !text.trim()) return;
+  subscribe();
+  const id = nextId++;
+  const done = new Promise<void>((resolve) => {
+    waiting.set(id, resolve);
+    // Safety net: never block the UI on a lost event.
+    setTimeout(() => {
+      waiting.delete(id);
+      resolve();
+    }, 4000 + text.length * 120);
+  });
+  const started = await invoke<boolean>("voice_speak", { id, text }).catch(() => false);
+  if (!started) {
+    waiting.delete(id);
+    return;
+  }
+  return done;
+}
+
 export function stopSpeaking() {
-  if ("speechSynthesis" in window) speechSynthesis.cancel();
+  invoke("voice_stop_speaking").catch(() => {});
 }

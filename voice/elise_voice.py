@@ -4,13 +4,18 @@ Elise voice sidecar — fully offline.
   * Wake word: Vosk small English model in grammar mode ("hey elise").
   * Command:   faster-whisper base.en (int8, CPU), loaded on demand,
                unloaded after a few idle minutes.
+  * Voice:     Kokoro TTS, voice "af_heart". Fixed phrases are pre-rendered
+               and cached so they play instantly; the model unloads when idle.
 
 Protocol: JSON lines. Commands on stdin, events on stdout.
   in : {"cmd": "set_wake", "on": bool} | {"cmd": "listen"} | {"cmd": "cancel"}
        {"cmd": "preload"} | {"cmd": "shutdown"}
+       {"cmd": "speak", "id": int, "text": str, "speed": float} | {"cmd": "stop_speaking"}
+       {"cmd": "prewarm", "texts": [str], "speed": float}
   out: {"evt": "ready"} | {"evt": "status", "msg": str} | {"evt": "wake"}
        {"evt": "listening"} | {"evt": "level", "v": float} | {"evt": "transcribing"}
        {"evt": "final", "text": str} | {"evt": "error", "msg": str}
+       {"evt": "spoken", "id": int}   (finished, interrupted or failed)
 
 The microphone stream is only open while wake listening is on or a command is
 being recorded, so with wake word off Elise uses no mic and no CPU.
@@ -38,6 +43,11 @@ VOSK_NAME = "vosk-model-small-en-us-0.15"
 VOSK_URL = f"https://alphacephei.com/vosk/models/{VOSK_NAME}.zip"
 WHISPER_NAME = "base.en"
 WHISPER_IDLE_UNLOAD_S = 300
+KOKORO_URL = "https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0"
+KOKORO_MODEL = "kokoro-v1.0.onnx"
+KOKORO_VOICE = "af_heart"
+KOKORO_VOICE_FILE = "voice-heart.npz"
+TTS_IDLE_UNLOAD_S = 300
 
 # Stage 1 (cheap, always on): Vosk in grammar mode spots these phrases.
 # Anything else falls into "[unk]". Adding look-alike names here makes the
@@ -348,9 +358,116 @@ class Voice:
             if time.time() - last_housekeeping > 30:
                 last_housekeeping = time.time()
                 self.maybe_unload_whisper()
+                if getattr(self, "speaker", None) is not None:
+                    self.speaker.maybe_unload()
 
 
-def stdin_reader(v: Voice):
+class Speaker:
+    """Elise's voice. One worker thread plays requests in order."""
+
+    def __init__(self, models_dir: str):
+        self.dir = os.path.join(models_dir, "kokoro")
+        self.model = None
+        self.used = 0.0
+        self.lock = threading.Lock()
+        self.cache: dict[tuple[str, float], np.ndarray] = {}
+        self.jobs: queue.Queue[tuple[int, str, float]] = queue.Queue()
+        self.stop_flag = threading.Event()
+        self.sr = 24000
+        threading.Thread(target=self._worker, daemon=True).start()
+
+    def _download(self):
+        os.makedirs(self.dir, exist_ok=True)
+        model = os.path.join(self.dir, KOKORO_MODEL)
+        voice = os.path.join(self.dir, KOKORO_VOICE_FILE)
+        if not os.path.exists(model):
+            emit(evt="status", msg="Downloading Elise's voice (310 MB, one time)…")
+            urllib.request.urlretrieve(f"{KOKORO_URL}/{KOKORO_MODEL}", model + ".part")
+            os.replace(model + ".part", model)
+        if not os.path.exists(voice):
+            pack = os.path.join(self.dir, "voices-v1.0.bin")
+            urllib.request.urlretrieve(f"{KOKORO_URL}/voices-v1.0.bin", pack)
+            np.savez(voice, **{KOKORO_VOICE: np.load(pack)[KOKORO_VOICE]})
+            os.remove(pack)
+        emit(evt="status", msg="")
+
+    def ensure(self):
+        with self.lock:
+            if self.model is None:
+                self._download()
+                import onnxruntime as ort
+                from kokoro_onnx import Kokoro
+
+                so = ort.SessionOptions()
+                so.intra_op_num_threads = min(8, os.cpu_count() or 4)
+                sess = ort.InferenceSession(os.path.join(self.dir, KOKORO_MODEL), so, providers=["CPUExecutionProvider"])
+                self.model = Kokoro.from_session(sess, os.path.join(self.dir, KOKORO_VOICE_FILE))
+            self.used = time.time()
+            return self.model
+
+    def render(self, text: str, speed: float) -> np.ndarray:
+        key = (text, round(speed, 2))
+        if key in self.cache:
+            return self.cache[key]
+        audio, self.sr = self.ensure().create(text, voice=KOKORO_VOICE, speed=speed, lang="en-us")
+        audio = audio.astype(np.float32)
+        if len(self.cache) < 64:
+            self.cache[key] = audio
+        return audio
+
+    def prewarm(self, texts: list[str], speed: float):
+        try:
+            for t in texts:
+                if t.strip():
+                    self.render(t.strip(), speed)
+        except Exception as e:  # noqa: BLE001
+            log("prewarm failed:", e)
+
+    def speak(self, job_id: int, text: str, speed: float):
+        self.jobs.put((job_id, text, speed))
+
+    def stop(self):
+        self.stop_flag.set()
+        while not self.jobs.empty():
+            job_id, _, _ = self.jobs.get_nowait()
+            emit(evt="spoken", id=job_id)
+        try:
+            import sounddevice as sd
+
+            sd.stop()
+        except Exception:  # noqa: BLE001
+            pass
+
+    def _worker(self):
+        import sounddevice as sd
+
+        while True:
+            job_id, text, speed = self.jobs.get()
+            self.stop_flag.clear()
+            try:
+                # Speak sentence by sentence so long answers start quickly.
+                parts = [p for p in re.split(r"(?<=[.!?])\s+", text.strip()) if p]
+                for part in parts:
+                    if self.stop_flag.is_set():
+                        break
+                    audio = self.render(part, speed)
+                    if self.stop_flag.is_set():
+                        break
+                    sd.play(audio, self.sr)
+                    sd.wait()
+            except Exception as e:  # noqa: BLE001
+                log("speak failed:", e)
+            emit(evt="spoken", id=job_id)
+
+    def maybe_unload(self):
+        with self.lock:
+            if self.model is not None and self.jobs.empty() and time.time() - self.used > TTS_IDLE_UNLOAD_S:
+                self.model = None
+                gc.collect()
+                log("tts unloaded")
+
+
+def stdin_reader(v: Voice, spk: Speaker):
     for line in sys.stdin:
         line = line.strip()
         if not line:
@@ -368,6 +485,12 @@ def stdin_reader(v: Voice):
             v.cancel()
         elif cmd == "preload":
             threading.Thread(target=v.ensure_whisper, daemon=True).start()
+        elif cmd == "speak":
+            spk.speak(int(msg.get("id", 0)), str(msg.get("text", "")), float(msg.get("speed", 1.0)))
+        elif cmd == "stop_speaking":
+            spk.stop()
+        elif cmd == "prewarm":
+            threading.Thread(target=spk.prewarm, args=(list(msg.get("texts", [])), float(msg.get("speed", 1.0))), daemon=True).start()
         elif cmd == "shutdown":
             break
     # stdin closed: the app is gone.
@@ -384,7 +507,9 @@ def main():
     except Exception:  # noqa: BLE001
         pass
     v = Voice(args.models)
-    threading.Thread(target=stdin_reader, args=(v,), daemon=True).start()
+    spk = Speaker(args.models)
+    v.speaker = spk
+    threading.Thread(target=stdin_reader, args=(v, spk), daemon=True).start()
     emit(evt="ready")
     v.loop()
 

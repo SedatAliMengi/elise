@@ -59,4 +59,9 @@ export function fmtUntil(d: Date, allDay: boolean, now = new Date()) {
   return `started ${span(-mins)} ago`;
 }
 
+/** How Elise says a time out loud: "10 PM", "9:30 AM". */
+export function spokenTime(d: Date) {
+  return format(d, d.getMinutes() ? "h:mm a" : "h a");
+}
+
 export { isSameDay };

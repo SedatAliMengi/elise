@@ -6,7 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import CommandPanel from "../components/CommandPanel";
 import Eye from "../components/Eye";
 import { api, on } from "../lib/api";
-import { fmtTime, fmtUntil, fromNaive } from "../lib/dates";
+import { fmtTime, fmtUntil, fromNaive, spokenTime } from "../lib/dates";
 import { speak } from "../lib/speech";
 import type { EyeState, OverlayMode, ReminderPayload } from "../lib/types";
 import { useSettings, voiceOpts } from "../lib/useSettings";
@@ -103,7 +103,7 @@ export default function OverlayApp() {
     if (eye === "closed" || eye === "vanishing") setEye("appearing");
     vanishing.current = false;
     const d = fromNaive(current.start);
-    speak(`Reminder: ${current.title}, ${current.allDay ? "" : "at " + fmtTime(d, true) + ", "}${fmtUntil(d, current.allDay)}.`, voiceOpts(settings));
+    speak(`Reminder: ${current.title}, ${current.allDay ? "" : "at " + spokenTime(d) + ", "}${fmtUntil(d, current.allDay).replace(/ h/, " hours").replace(/ min/, " minutes")}.`, voiceOpts(settings));
     const t = window.setTimeout(() => {
       api.reminderToast("Elise reminder", reminderLine(current, settings.time24h));
       resolveReminder("dismiss");

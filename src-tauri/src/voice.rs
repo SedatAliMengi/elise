@@ -124,6 +124,10 @@ fn handle(app: &AppHandle, msg: Value) {
             set_status(app, true, "");
             let on = app.state::<AppState>().settings.lock().unwrap().wake_word;
             send(app, json!({"cmd": "set_wake", "on": on}));
+            prewarm(app);
+        }
+        "spoken" => {
+            let _ = app.emit("voice-spoken", msg.get("id").cloned().unwrap_or(Value::Null));
         }
         "status" => {
             let m = msg.get("msg").and_then(Value::as_str).unwrap_or("");
@@ -163,6 +167,37 @@ pub fn cancel(app: &AppHandle) {
 
 pub fn set_wake(app: &AppHandle, on: bool) {
     send(app, json!({"cmd": "set_wake", "on": on}));
+}
+
+/// Elise's speaking rate: the settings slider scales a slightly calm default.
+fn speed(app: &AppHandle) -> f64 {
+    let rate = app.state::<AppState>().settings.lock().unwrap().voice_rate as f64;
+    (rate * 0.95).clamp(0.5, 1.6)
+}
+
+/// Pre-render the phrases Elise says most, so they play instantly.
+pub fn prewarm(app: &AppHandle) {
+    let name = app.state::<AppState>().settings.lock().unwrap().user_name.clone();
+    let name = if name.trim().is_empty() { "Enigma".to_string() } else { name };
+    let texts = [
+        format!("Hello {name}, what is your command?"),
+        "Understood.".to_string(),
+        "Undone.".to_string(),
+        "I didn't hear anything. Say it again, or type it.".to_string(),
+    ];
+    send(app, json!({"cmd": "prewarm", "texts": texts, "speed": speed(app)}));
+}
+
+pub fn speak(app: &AppHandle, id: u64, text: &str) -> bool {
+    if !status(app).available {
+        return false;
+    }
+    send(app, json!({"cmd": "speak", "id": id, "text": text, "speed": speed(app)}));
+    true
+}
+
+pub fn stop_speaking(app: &AppHandle) {
+    send(app, json!({"cmd": "stop_speaking"}));
 }
 
 pub fn shutdown(app: &AppHandle) {
