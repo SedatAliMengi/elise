@@ -110,6 +110,9 @@ pub fn resting_mode(app: &AppHandle) -> Mode {
 }
 
 pub fn summon(app: &AppHandle, source: &str) {
+    if crate::stage::summon(app, source) {
+        return;
+    }
     set_mode(app, Mode::Expanded);
     if source != "voice" {
         if let Some(w) = win(app) {

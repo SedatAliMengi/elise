@@ -32,7 +32,11 @@ Tauri 2 (Rust) + React/TS/Vite. Single user ("Enigma"), local only.
 - TS: `npx tsc --noEmit`
 - Run: `npm run tauri dev` (quit the installed Elise first: single instance) · Build installer: `npm run tauri build`
   then copy `src-tauri/target/release/bundle/nsis/*.exe` to `installer/` and delete `src-tauri/target` (user wants the folder lean).
-- Installed copy: `%LOCALAPPDATA%\Elise\elise.exe`; update by running the new installer with `/S`.
+- **Never run the installer (or the installed app) from Claude.** Claude Desktop is an MSIX app: anything it
+  launches writes AppData/HKCU into `%LOCALAPPDATA%\Packages\Claude_*\LocalCache` (invisible to the user's
+  real Windows: broken shortcut icon, no real Start menu/autostart). Build the installer, copy it to
+  `installer/`, and ask the user to double-click `install-elise.bat` (installs + restarts Elise).
+- Installed copy (real): `%LOCALAPPDATA%\Elise\elise.exe`; data in `%APPDATA%\com.enigma.elise`.
 - Icons: `node scripts/make-icons.mjs` (renders the eye → `tauri icon`)
 - Dev gotcha: after a Rust hot-rebuild the window can stay black (WebView2 didn't start). Kill `elise.exe`
   and rerun `npm run tauri dev`.

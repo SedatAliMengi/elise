@@ -187,6 +187,7 @@ export default function OverlayApp() {
       items: [
         { id: "cal", text: "Open Calendar", action: () => api.showCalendar() },
         { id: "set", text: "Settings…", action: () => api.showCalendar(true) },
+        { id: "big", text: "Big eye on screen", action: () => api.stageSet(true) },
         { item: "Separator" },
         { id: "hide", text: "Hide (turn off hover)", action: () => api.setSettings({ ...settings, hoverMode: false }) },
       ],

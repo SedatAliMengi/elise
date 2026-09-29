@@ -134,7 +134,8 @@ fn handle(app: &AppHandle, msg: Value) {
             set_status(app, true, m);
         }
         "wake" => {
-            *app.state::<Voice>().owner.lock().unwrap() = crate::overlay::LABEL.to_string();
+            let owner = if crate::stage::is_on(app) { crate::stage::LABEL } else { crate::overlay::LABEL };
+            *app.state::<Voice>().owner.lock().unwrap() = owner.to_string();
             crate::overlay::summon(app, "voice");
         }
         _ => {

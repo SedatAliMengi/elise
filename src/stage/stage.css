@@ -1,0 +1,72 @@
+.stage {
+  position: fixed;
+  inset: 0;
+  background: #000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.stage__glow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(closest-side at 50% 46%, rgba(139, 0, 255, 0.08), transparent 70%);
+  pointer-events: none;
+}
+.stage__center {
+  position: relative;
+  display: grid;
+  place-items: center;
+  margin-top: -6vh;
+  flex: none;
+}
+.stage__center .ritual {
+  z-index: 0;
+}
+.stage__center .eye {
+  position: relative;
+  z-index: 1;
+}
+.stage__panel {
+  position: absolute;
+  left: 50%;
+  bottom: 6vh;
+  transform: translateX(-50%);
+  z-index: 2;
+}
+.stage__panel .cmd {
+  width: 420px;
+}
+.stage__panel .cmd__bubble::after {
+  display: none;
+}
+.stage__hint {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: var(--text-faint);
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  pointer-events: none;
+}
+.stage__close {
+  position: absolute;
+  top: 18px;
+  right: 20px;
+  height: 36px;
+  padding: 0 16px;
+  border-radius: 999px;
+  color: var(--text);
+  font-size: 14px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  opacity: 0.75;
+  z-index: 3;
+  transition: opacity 0.2s, background 0.2s;
+}
+.stage__close:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.12);
+}

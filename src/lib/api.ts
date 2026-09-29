@@ -45,6 +45,8 @@ export const api = {
   voiceCancel: () => invoke<void>("voice_cancel"),
   voiceStatus: () => invoke<VoiceStatus>("voice_status"),
   showCalendar: (settings = false) => invoke<void>("show_calendar", { settings }),
+  stageSet: (on: boolean) => invoke<void>("stage_set", { on }),
+  stageIsOn: () => invoke<boolean>("stage_is_on"),
   hideCalendar: () => invoke<void>("hide_calendar"),
   isCalendarVisible: () => invoke<boolean>("is_calendar_visible"),
   quit: () => invoke<void>("quit"),

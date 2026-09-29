@@ -166,6 +166,15 @@ export default function SettingsPanel({ settings, onClose }: Props) {
               {voice.message && ` · ${voice.message}`}
             </div>
             <Toggle label="Hover on screen" hint="Keep a small eye on screen; drag it anywhere" on={settings.hoverMode} onChange={(v) => update({ hoverMode: v })} />
+            <div className="set-row">
+              <div>
+                <div className="set-row__label">Big eye on screen</div>
+                <div className="set-row__hint">Elise fills your main screen · Esc to close</div>
+              </div>
+              <button className="btn" onClick={() => { onClose(); api.stageSet(true); }}>
+                Show
+              </button>
+            </div>
             {settings.hoverMode && (
               <div className="set-row">
                 <div className="set-row__label">Eye position</div>

@@ -6,6 +6,7 @@ mod overlay;
 mod recur;
 mod scheduler;
 mod settings;
+mod stage;
 mod tray;
 mod voice;
 mod webview;
@@ -19,7 +20,7 @@ use std::sync::Mutex;
 use chrono::NaiveDateTime;
 use tauri::{AppHandle, Emitter, Manager, WindowEvent};
 use tauri_plugin_autostart::ManagerExt as _;
-use tauri_plugin_global_shortcut::{GlobalShortcutExt, ShortcutState};
+use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, ShortcutState};
 use tauri_plugin_notification::NotificationExt;
 
 use db::Db;
@@ -40,6 +41,7 @@ pub struct AppState {
     pub sessions: Mutex<HashMap<String, llm::Session>>,
     pub move_counter: AtomicU64,
     pub ignore_moves: AtomicBool,
+    pub stage_on: AtomicBool,
 }
 
 type CmdResult<T> = Result<T, String>;
@@ -81,7 +83,11 @@ fn register_hotkey(app: &AppHandle, hotkey: &str) -> CmdResult<()> {
     if hotkey.trim().is_empty() {
         return Ok(());
     }
-    gs.register(hotkey).map_err(|e| format!("Couldn't register hotkey \"{hotkey}\": {e}"))
+    let r = gs.register(hotkey).map_err(|e| format!("Couldn't register hotkey \"{hotkey}\": {e}"));
+    if stage::is_on(app) {
+        let _ = gs.register("Escape");
+    }
+    r
 }
 
 fn apply_autostart(app: &AppHandle, on: bool) {
@@ -338,6 +344,16 @@ fn show_calendar(app: AppHandle, settings: Option<bool>) {
 }
 
 #[tauri::command]
+fn stage_set(app: AppHandle, on: bool) {
+    stage::set(&app, on);
+}
+
+#[tauri::command]
+fn stage_is_on(app: AppHandle) -> bool {
+    stage::is_on(&app)
+}
+
+#[tauri::command]
 fn hide_calendar(app: AppHandle) {
     hide_main(&app);
 }
@@ -365,8 +381,14 @@ pub fn run() {
         .plugin(tauri_plugin_notification::init())
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
-                .with_handler(|app, _shortcut, ev| {
-                    if ev.state() == ShortcutState::Pressed {
+                .with_handler(|app, shortcut, ev| {
+                    if ev.state() != ShortcutState::Pressed {
+                        return;
+                    }
+                    // Esc is only registered while the big eye is on: it always closes it.
+                    if shortcut.matches(Modifiers::empty(), Code::Escape) {
+                        stage::set(app, false);
+                    } else {
                         overlay::summon(app, "hotkey");
                     }
                 })
@@ -390,6 +412,7 @@ pub fn run() {
                 sessions: Mutex::new(HashMap::new()),
                 move_counter: AtomicU64::new(0),
                 ignore_moves: AtomicBool::new(false),
+                stage_on: AtomicBool::new(false),
             });
 
             app.manage(voice::Voice::default());
@@ -419,7 +442,9 @@ pub fn run() {
             WindowEvent::CloseRequested { api, .. } => {
                 // Closing any window just hides it; Elise lives in the tray.
                 api.prevent_close();
-                if window.label() == "main" {
+                if window.label() == stage::LABEL {
+                    stage::set(window.app_handle(), false);
+                } else if window.label() == "main" {
                     hide_main(window.app_handle());
                 } else {
                     let _ = window.hide();
@@ -461,6 +486,8 @@ pub fn run() {
             voice_stop_speaking,
             show_calendar,
             hide_calendar,
+            stage_set,
+            stage_is_on,
             is_calendar_visible,
             quit,
         ])

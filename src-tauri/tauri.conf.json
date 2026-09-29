@@ -38,6 +38,22 @@
         "shadow": false,
         "visible": false,
         "focus": false
+      },
+      {
+        "label": "stage",
+        "title": "Elise",
+        "url": "index.html?window=stage",
+        "width": 1280,
+        "height": 720,
+        "decorations": false,
+        "resizable": false,
+        "skipTaskbar": true,
+        "alwaysOnTop": true,
+        "visible": false,
+        "focus": false,
+        "dragDropEnabled": false,
+        "backgroundColor": "#000000",
+        "shadow": false
       }
     ],
     "security": {
@@ -46,7 +62,9 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["nsis"],
+    "targets": [
+      "nsis"
+    ],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

@@ -6,6 +6,7 @@ use crate::settings::Settings;
 use crate::AppState;
 
 pub struct TrayChecks {
+    stage: CheckMenuItem<Wry>,
     hover: CheckMenuItem<Wry>,
     wake: CheckMenuItem<Wry>,
     voice: CheckMenuItem<Wry>,
@@ -13,6 +14,10 @@ pub struct TrayChecks {
 }
 
 impl TrayChecks {
+    pub fn sync_stage(&self, on: bool) {
+        let _ = self.stage.set_checked(on);
+    }
+
     pub fn sync(&self, s: &Settings) {
         let _ = self.hover.set_checked(s.hover_mode);
         let _ = self.wake.set_checked(s.wake_word);
@@ -25,6 +30,7 @@ pub fn build(app: &AppHandle) -> tauri::Result<TrayChecks> {
     let s = app.state::<AppState>().settings.lock().unwrap().clone();
     let summon = MenuItem::with_id(app, "summon", "Summon Elise", true, None::<&str>)?;
     let open = MenuItem::with_id(app, "open", "Open Calendar", true, None::<&str>)?;
+    let stage = CheckMenuItem::with_id(app, "stage", "Big eye on screen", true, false, None::<&str>)?;
     let hover = CheckMenuItem::with_id(app, "hover", "Hover on screen", true, s.hover_mode, None::<&str>)?;
     let wake = CheckMenuItem::with_id(app, "wake", "Listen for \"Hey Elise\"", true, s.wake_word, None::<&str>)?;
     let voice = CheckMenuItem::with_id(app, "voice", "Voice responses", true, s.voice_responses, None::<&str>)?;
@@ -34,7 +40,7 @@ pub fn build(app: &AppHandle) -> tauri::Result<TrayChecks> {
     let sep = || PredefinedMenuItem::separator(app);
     let menu = Menu::with_items(
         app,
-        &[&summon, &open, &sep()?, &hover, &wake, &voice, &autostart, &sep()?, &settings, &quit],
+        &[&summon, &open, &sep()?, &stage, &hover, &wake, &voice, &autostart, &sep()?, &settings, &quit],
     )?;
 
     TrayIconBuilder::with_id("elise")
@@ -47,6 +53,10 @@ pub fn build(app: &AppHandle) -> tauri::Result<TrayChecks> {
             "open" => crate::show_main(app, false),
             "settings" => crate::show_main(app, true),
             "quit" => app.exit(0),
+            "stage" => {
+                let on = !crate::stage::is_on(app);
+                crate::stage::set(app, on);
+            }
             id @ ("hover" | "wake" | "voice" | "autostart") => {
                 let mut s = app.state::<AppState>().settings.lock().unwrap().clone();
                 match id {
@@ -66,5 +76,5 @@ pub fn build(app: &AppHandle) -> tauri::Result<TrayChecks> {
         })
         .build(app)?;
 
-    Ok(TrayChecks { hover, wake, voice, autostart })
+    Ok(TrayChecks { stage, hover, wake, voice, autostart })
 }
