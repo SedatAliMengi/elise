@@ -58,7 +58,7 @@ export default function TitleBar({ settings }: Props) {
 
       <div className="titlebar__center">
         <div className="titlebar__eye">
-          <Eye state={eye} size={96} level={level} onClick={toggle} title="Command Elise" />
+          <Eye state={eye} size={112} level={level} onClick={toggle} title="Command Elise" />
         </div>
         <AnimatePresence>
           {cmdKey !== null && (

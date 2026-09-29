@@ -10,50 +10,41 @@
 .eye--clickable {
   cursor: pointer;
 }
-.eye--clickable:hover .eye__aura {
-  stroke-opacity: 1;
-}
 
-/* slow "breathing" of the glows */
+/* slow glow "breathing" */
 .eye__aura,
-.eye__iris-glow,
-.eye__pupil-glow {
-  animation: eye-breathe 4.2s ease-in-out infinite;
-}
-.eye__aura {
-  stroke-opacity: 0.75;
-  transition: stroke-opacity 0.3s;
-}
-.eye__iris-glow {
-  opacity: 0.55;
+.eye__underglow {
+  animation: eye-breathe 4.6s ease-in-out infinite;
 }
 .eye__pupil-glow {
-  opacity: 0.8;
-  animation-duration: 3.1s;
+  opacity: 0.85;
+  animation: eye-breathe 3.2s ease-in-out infinite;
 }
 @keyframes eye-breathe {
   0%,
   100% {
-    opacity: 0.55;
+    opacity: 0.6;
   }
   50% {
     opacity: 1;
   }
 }
+.eye--clickable:hover .eye__aura {
+  opacity: 1;
+}
 
-/* thinking: a shimmering ring slowly turns around the iris */
-.eye__ring {
-  opacity: 0;
-  transform-origin: 0 0;
-  transition: opacity 0.4s;
+/* the compass star turns slowly; the sparkles drift the other way */
+.eye__star {
+  animation: eye-spin 60s linear infinite;
 }
-.eye--thinking .eye__ring {
-  opacity: 0.85;
-  animation: eye-spin 2.4s linear infinite;
+.eye__sparkles {
+  animation: eye-spin 90s linear infinite reverse;
 }
-.eye--thinking .eye__fibers {
-  animation: eye-spin 9s linear infinite reverse;
-  transform-origin: 0 0;
+.eye--thinking .eye__star {
+  animation-duration: 5s;
+}
+.eye--thinking .eye__sparkles {
+  animation-duration: 2.6s;
 }
 @keyframes eye-spin {
   to {
@@ -61,11 +52,24 @@
   }
 }
 
-/* listening / speaking: glows a little brighter */
-.eye--listening .eye__aura,
-.eye--speaking .eye__aura {
-  stroke-opacity: 1;
-  animation-duration: 1.8s;
+/* twinkling stars */
+.eye__tw {
+  animation: eye-twinkle 3.4s ease-in-out infinite;
+}
+@keyframes eye-twinkle {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* listening / speaking: the pupil glows harder */
+.eye--listening .eye__pupil-glow,
+.eye--speaking .eye__pupil-glow {
+  animation-duration: 1.4s;
 }
 
 /* error: the pupil flickers once */
@@ -81,9 +85,9 @@
   60% { opacity: 1; }
 }
 
-/* opacity is owned by motion, so dim with a filter instead */
+/* opacity is owned by motion, so dim the hover eye with a filter instead */
 .eye--dim svg {
-  filter: brightness(0.8) saturate(0.9);
+  filter: brightness(0.82);
   transition: filter 0.3s;
 }
 .eye--dim:hover svg {

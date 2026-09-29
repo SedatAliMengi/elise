@@ -30,7 +30,7 @@
   transform: rotate(45deg);
 }
 .cmd--overlay .cmd__bubble::after {
-  right: 34px;
+  right: 62px;
   bottom: -8px;
   border-top: none;
   border-left: none;

@@ -14,8 +14,8 @@ use crate::AppState;
 
 pub const LABEL: &str = "overlay";
 /// Logical sizes.
-const COMPACT: (f64, f64) = (112.0, 112.0);
-const EXPANDED: (f64, f64) = (480.0, 400.0);
+const COMPACT: (f64, f64) = (156.0, 130.0);
+const EXPANDED: (f64, f64) = (500.0, 430.0);
 const MARGIN: f64 = 12.0;
 
 #[derive(Serialize, Clone, Copy, Debug, PartialEq, Eq)]

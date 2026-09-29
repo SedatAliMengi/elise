@@ -176,7 +176,7 @@ export default function OverlayApp() {
   if (mode === "compact" && !session && !current) {
     return (
       <div className="overlay overlay--compact">
-        <Eye state={eye === "closed" ? "appearing" : eye} size={92} dim onMouseDown={onEyeMouseDown} onContextMenu={onEyeContext} title="Elise — click to command, drag to move" />
+        <Eye state={eye === "closed" ? "appearing" : eye} size={140} dim onMouseDown={onEyeMouseDown} onContextMenu={onEyeContext} title="Elise — click to command, drag to move" />
       </div>
     );
   }
@@ -215,7 +215,7 @@ export default function OverlayApp() {
         </AnimatePresence>
       </div>
       <div className="overlay__eye">
-        <Eye state={eye} size={96} level={level} onClick={() => !session && startSession(true)} title="Elise" />
+        <Eye state={eye} size={146} level={level} onClick={() => !session && startSession(true)} title="Elise" />
       </div>
     </div>
   );
