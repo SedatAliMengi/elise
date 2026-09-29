@@ -467,7 +467,7 @@ exact milestone.
 | M6 | Settings + API key (Credential Manager) + Claude command engine | ✅ built; tool execution unit-tested; **live test needs the API key** |
 | M7 | Voice output behind toggle | ✅ built (`src/lib/speech.ts`) |
 | M8 | Voice sidecar: wake word + Whisper | ✅ installed; transcription + wake word verified on recorded clips; **live mic test by the user pending** |
-| M9 | Polish, perf check, installer | ✅ idle CPU ≈ 0 %, NSIS installer built |
+| M9 | Polish, perf check, installer | ✅ installed 2026-09-29 to `%LOCALAPPDATA%\Elise`, starts with Windows |
 
 Implementation notes (decisions made while building):
 - **Times are stored as local wall-clock time**, not UTC. A 09:00 event stays at 09:00 across DST
@@ -488,5 +488,7 @@ Implementation notes (decisions made while building):
 - **Wake word is two-stage:** Vosk (grammar: "hey/okay/hi elise") spots a candidate, then Whisper
   re-listens to the last 2.5 s and must hear the name. This rejects look-alikes such as
   "hey, at least…" that fooled Vosk alone. Always-on listening: ~170 MB RAM, ~0.1 % CPU.
+- **Voice output** is Kokoro TTS ("Heart"), not Windows voices: this PC only exposes a Turkish
+  voice to WebView2. Frequent phrases are pre-rendered at startup and play instantly.
 - Esc could not be tested automatically (the test tool reserves that key); it's wired in the
   overlay, the editor and all dialogs.

@@ -30,7 +30,9 @@ Tauri 2 (Rust) + React/TS/Vite. Single user ("Enigma"), local only.
 ## Verify
 - Rust: `cd src-tauri && cargo test` (recurrence, reminders, undo, scoped edits, scheduler)
 - TS: `npx tsc --noEmit`
-- Run: `npm run tauri dev` · Build installer: `npm run tauri build` (NSIS, `src-tauri/target/release/bundle/nsis/`)
+- Run: `npm run tauri dev` (quit the installed Elise first: single instance) · Build installer: `npm run tauri build`
+  then copy `src-tauri/target/release/bundle/nsis/*.exe` to `installer/` and delete `src-tauri/target` (user wants the folder lean).
+- Installed copy: `%LOCALAPPDATA%\Elise\elise.exe`; update by running the new installer with `/S`.
 - Icons: `node scripts/make-icons.mjs` (renders the eye → `tauri icon`)
 - Dev gotcha: after a Rust hot-rebuild the window can stay black (WebView2 didn't start). Kill `elise.exe`
   and rerun `npm run tauri dev`.

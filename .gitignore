@@ -36,3 +36,6 @@ voice/build
 voice/dist
 voice/models
 __pycache__
+
+# built installers
+installer/
