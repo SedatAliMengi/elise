@@ -1,0 +1,96 @@
+.eye {
+  position: relative;
+  flex: none;
+  transform-origin: center;
+}
+.eye svg {
+  display: block;
+  overflow: visible;
+}
+.eye--clickable {
+  cursor: pointer;
+}
+.eye--clickable:hover .eye__aura {
+  stroke-opacity: 1;
+}
+
+/* slow "breathing" of the glows */
+.eye__aura,
+.eye__iris-glow,
+.eye__pupil-glow {
+  animation: eye-breathe 4.2s ease-in-out infinite;
+}
+.eye__aura {
+  stroke-opacity: 0.75;
+  transition: stroke-opacity 0.3s;
+}
+.eye__iris-glow {
+  opacity: 0.55;
+}
+.eye__pupil-glow {
+  opacity: 0.8;
+  animation-duration: 3.1s;
+}
+@keyframes eye-breathe {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* thinking: a shimmering ring slowly turns around the iris */
+.eye__ring {
+  opacity: 0;
+  transform-origin: 0 0;
+  transition: opacity 0.4s;
+}
+.eye--thinking .eye__ring {
+  opacity: 0.85;
+  animation: eye-spin 2.4s linear infinite;
+}
+.eye--thinking .eye__fibers {
+  animation: eye-spin 9s linear infinite reverse;
+  transform-origin: 0 0;
+}
+@keyframes eye-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* listening / speaking: glows a little brighter */
+.eye--listening .eye__aura,
+.eye--speaking .eye__aura {
+  stroke-opacity: 1;
+  animation-duration: 1.8s;
+}
+
+/* error: the pupil flickers once */
+.eye--error .eye__pupil,
+.eye--error .eye__pupil-glow {
+  animation: eye-flicker 0.7s steps(1) 1;
+}
+@keyframes eye-flicker {
+  0% { opacity: 1; }
+  15% { opacity: 0.2; }
+  30% { opacity: 1; }
+  45% { opacity: 0.3; }
+  60% { opacity: 1; }
+}
+
+/* opacity is owned by motion, so dim with a filter instead */
+.eye--dim svg {
+  filter: brightness(0.8) saturate(0.9);
+  transition: filter 0.3s;
+}
+.eye--dim:hover svg {
+  filter: none;
+}
+
+/* No animation work while the window is hidden. */
+:root.hidden-doc .eye * {
+  animation-play-state: paused !important;
+}

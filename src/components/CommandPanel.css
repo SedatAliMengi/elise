@@ -1,0 +1,158 @@
+.cmd {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 360px;
+  max-width: 100%;
+}
+
+.cmd__bubble {
+  position: relative;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: linear-gradient(160deg, rgba(38, 24, 62, 0.97), rgba(18, 11, 30, 0.97));
+  border: 1px solid rgba(180, 76, 255, 0.45);
+  box-shadow:
+    0 0 0 1px rgba(139, 0, 255, 0.12),
+    0 0 26px rgba(139, 0, 255, 0.28),
+    0 12px 30px rgba(0, 0, 0, 0.45);
+  line-height: 1.45;
+}
+
+/* bubble tail */
+.cmd__bubble::after {
+  content: "";
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  background: rgba(24, 15, 40, 0.97);
+  border: 1px solid rgba(180, 76, 255, 0.45);
+  transform: rotate(45deg);
+}
+.cmd--overlay .cmd__bubble::after {
+  right: 34px;
+  bottom: -8px;
+  border-top: none;
+  border-left: none;
+}
+.cmd--calendar .cmd__bubble::after {
+  left: calc(50% - 7px);
+  top: -8px;
+  border-bottom: none;
+  border-right: none;
+}
+/* in the overlay the tail points at the eye, so only show it when nothing sits between them */
+.cmd--overlay.cmd--has-input .cmd__bubble::after {
+  display: none;
+}
+.cmd--overlay.cmd--has-input .cmd__input {
+  position: relative;
+}
+
+.cmd__text {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text);
+}
+.cmd--done .cmd__text,
+.cmd--undone .cmd__text {
+  font-size: 17px;
+  color: #fff;
+  text-shadow: 0 0 12px rgba(180, 76, 255, 0.7);
+}
+.cmd--error .cmd__text {
+  color: #ffb3b3;
+}
+.cmd__text--echo {
+  color: var(--text-dim);
+  font-style: italic;
+  font-weight: 400;
+}
+
+.cmd__dots {
+  display: inline-flex;
+  gap: 4px;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+.cmd__dots i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--iris-glow);
+  animation: cmd-dot 1s ease-in-out infinite;
+}
+.cmd__dots i:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.cmd__dots i:nth-child(3) {
+  animation-delay: 0.3s;
+}
+@keyframes cmd-dot {
+  0%,
+  100% {
+    opacity: 0.25;
+    transform: translateY(0);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-3px);
+  }
+}
+
+.cmd__summary {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.cmd__summary li {
+  font-size: 12.5px;
+  color: var(--text-dim);
+  padding-left: 12px;
+  position: relative;
+}
+.cmd__summary li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 7px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--pupil);
+  box-shadow: var(--glow-pupil);
+}
+
+.cmd__actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 6px;
+}
+.cmd__undo {
+  height: 28px;
+  font-size: 12.5px;
+  color: var(--iris-glow);
+}
+
+.cmd__input {
+  display: flex;
+  gap: 8px;
+}
+.cmd__input .input {
+  height: 40px;
+  background: rgba(20, 14, 31, 0.97);
+  border-color: rgba(180, 76, 255, 0.35);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.4);
+}
+.cmd__input .input:focus {
+  outline: none;
+  border-color: var(--iris-glow);
+  box-shadow: var(--glow-iris);
+}
+.cmd__input .btn {
+  height: 40px;
+  width: 40px;
+}
