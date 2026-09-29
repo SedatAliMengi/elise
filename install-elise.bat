@@ -12,13 +12,17 @@ echo.
 taskkill /IM elise.exe /F >nul 2>&1
 timeout /t 2 /nobreak >nul
 
-rem One-time: move calendar, settings and voice models into place.
+rem Bring back calendar, settings and voice models (merges, never deletes events).
 if exist "transfer\com.enigma.elise" (
-  if exist "%APPDATA%\com.enigma.elise\elise.db" (
-    echo   Existing calendar found - keeping it.
-  ) else (
-    echo   Moving your calendar, settings and voice models - this can take a minute...
-    robocopy "transfer\com.enigma.elise" "%APPDATA%\com.enigma.elise" /E /MOVE /NFL /NDL /NJH /NJS >nul
+  echo   Restoring your calendar, settings and voice models - this can take a minute...
+  set "PY=voice\.venv\Scripts\python.exe"
+  if not exist "voice\.venv\Scripts\python.exe" set "PY=python"
+  call "%%PY%%" "scripts\restore_data.py"
+  if errorlevel 1 (
+    echo.
+    echo   Something went wrong while restoring. Your data is still in the "transfer" folder.
+    pause
+    exit /b 1
   )
   rd /s /q "transfer" 2>nul
 )
@@ -35,4 +39,4 @@ start "" "%LOCALAPPDATA%\Elise\elise.exe"
 echo.
 echo   Done! Elise is running in the tray and will start with Windows.
 echo.
-timeout /t 6
+timeout /t 8
