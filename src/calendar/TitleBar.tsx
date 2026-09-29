@@ -56,6 +56,15 @@ export default function TitleBar({ settings }: Props) {
         <span className="titlebar__name">Elise</span>
       </div>
 
+      {/* The line runs across the header and into the eye's side lashes. */}
+      <div className="titlebar__rail" data-tauri-drag-region>
+        <motion.div
+          className="titlebar__line titlebar__line--l"
+          data-tauri-drag-region
+          initial={{ scaleX: 0 }}
+          animate={{ scaleX: 1 }}
+          transition={{ duration: 0.9, delay: 0.35, ease: [0.22, 1, 0.36, 1] }}
+        />
       <div className="titlebar__center">
         <div className="titlebar__eye">
           <Eye state={eye} size={112} level={level} onClick={toggle} title="Command Elise" />
@@ -78,6 +87,14 @@ export default function TitleBar({ settings }: Props) {
           )}
         </AnimatePresence>
       </div>
+        <motion.div
+          className="titlebar__line titlebar__line--r"
+          data-tauri-drag-region
+          initial={{ scaleX: 0 }}
+          animate={{ scaleX: 1 }}
+          transition={{ duration: 0.9, delay: 0.35, ease: [0.22, 1, 0.36, 1] }}
+        />
+      </div>
 
       <div className="titlebar__controls">
         <button className="wc" onClick={() => win.minimize()} title="Minimize">
@@ -94,7 +111,6 @@ export default function TitleBar({ settings }: Props) {
           <svg width="10" height="10" viewBox="0 0 10 10"><path d="M1 1l8 8M9 1L1 9" stroke="currentColor" strokeWidth="1.2" /></svg>
         </button>
       </div>
-      <motion.div className="titlebar__line" initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }} />
     </header>
   );
 }
