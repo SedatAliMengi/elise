@@ -1133,3 +1133,6 @@ select.input option {
   z-index: 100;
   max-width: 70%;
 }
+.voice-status {
+  margin: -2px 0 6px;
+}

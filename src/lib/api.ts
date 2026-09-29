@@ -8,6 +8,7 @@ import type {
   ReminderPayload,
   Scope,
   Settings,
+  VoiceStatus,
 } from "./types";
 
 export const api = {
@@ -40,7 +41,12 @@ export const api = {
   reminderAction: (p: ReminderPayload, action: "dismiss" | "snooze", minutes?: number) =>
     invoke<void>("reminder_action", { reminderId: p.reminderId, occKey: p.occKey, action, minutes: minutes ?? null }),
   reminderToast: (title: string, body: string) => invoke<void>("reminder_toast", { title, body }),
+  voiceListen: () => invoke<void>("voice_listen"),
+  voiceCancel: () => invoke<void>("voice_cancel"),
+  voiceStatus: () => invoke<VoiceStatus>("voice_status"),
   showCalendar: (settings = false) => invoke<void>("show_calendar", { settings }),
+  hideCalendar: () => invoke<void>("hide_calendar"),
+  isCalendarVisible: () => invoke<boolean>("is_calendar_visible"),
   quit: () => invoke<void>("quit"),
 };
 

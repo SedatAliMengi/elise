@@ -16,6 +16,7 @@ import "./overlay.css";
 interface Session {
   key: number;
   greet: boolean;
+  voice: boolean;
 }
 
 const VANISH_MS = 560;
@@ -27,6 +28,7 @@ export default function OverlayApp() {
   const [eye, setEye] = useState<EyeState>("closed");
   const [session, setSession] = useState<Session | null>(null);
   const [queue, setQueue] = useState<ReminderPayload[]>([]);
+  const [level, setLevel] = useState(0);
   const vanishing = useRef(false);
   const keyRef = useRef(0);
   const modeRef = useRef(mode);
@@ -34,10 +36,10 @@ export default function OverlayApp() {
   const queueRef = useRef(queue);
   queueRef.current = queue;
 
-  const startSession = useCallback((greet: boolean) => {
+  const startSession = useCallback((greet: boolean, voice = false) => {
     vanishing.current = false;
     keyRef.current += 1;
-    setSession({ key: keyRef.current, greet });
+    setSession({ key: keyRef.current, greet, voice });
   }, []);
 
   const pullReminders = useCallback(async () => {
@@ -63,17 +65,14 @@ export default function OverlayApp() {
           setEye("closed");
         }
       }),
-      on<string>("summon", () => {
+      on<string>("summon", (source) => {
         setEye(modeRef.current === "expanded" ? "listening" : "appearing");
-        startSession(true);
+        startSession(true, source === "voice");
       }),
       on("reminder", () => pullReminders()),
     ];
-    const onVis = () => document.documentElement.classList.toggle("hidden-doc", document.hidden);
-    document.addEventListener("visibilitychange", onVis);
     return () => {
       offs.forEach((f) => f());
-      document.removeEventListener("visibilitychange", onVis);
     };
   }, [pullReminders, startSession]);
 
@@ -187,7 +186,16 @@ export default function OverlayApp() {
       <div className="overlay__stack">
         <AnimatePresence mode="wait">
           {session && (
-            <CommandPanel key={session.key} settings={settings} greet={session.greet} placement="overlay" onEyeState={setEye} onFinish={onPanelFinish} />
+            <CommandPanel
+              key={session.key}
+              settings={settings}
+              greet={session.greet}
+              autoListen={session.voice}
+              placement="overlay"
+              onEyeState={setEye}
+              onLevel={setLevel}
+              onFinish={onPanelFinish}
+            />
           )}
           {!session && current && (
             <ReminderCard
@@ -207,7 +215,7 @@ export default function OverlayApp() {
         </AnimatePresence>
       </div>
       <div className="overlay__eye">
-        <Eye state={eye} size={96} onClick={() => !session && startSession(true)} title="Elise" />
+        <Eye state={eye} size={96} level={level} onClick={() => !session && startSession(true)} title="Elise" />
       </div>
     </div>
   );

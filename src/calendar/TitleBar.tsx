@@ -2,6 +2,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import CommandPanel from "../components/CommandPanel";
+import { api } from "../lib/api";
 import Eye from "../components/Eye";
 import type { EyeState, Settings } from "../lib/types";
 
@@ -14,6 +15,7 @@ export default function TitleBar({ settings }: Props) {
   const win = getCurrentWindow();
   const [cmdKey, setCmdKey] = useState<number | null>(null);
   const [eye, setEye] = useState<EyeState>("appearing");
+  const [level, setLevel] = useState(0);
   const [maximized, setMaximized] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -56,7 +58,7 @@ export default function TitleBar({ settings }: Props) {
 
       <div className="titlebar__center">
         <div className="titlebar__eye">
-          <Eye state={eye} size={96} onClick={toggle} title="Command Elise" />
+          <Eye state={eye} size={96} level={level} onClick={toggle} title="Command Elise" />
         </div>
         <AnimatePresence>
           {cmdKey !== null && (
@@ -66,6 +68,7 @@ export default function TitleBar({ settings }: Props) {
                 settings={settings}
                 placement="calendar"
                 onEyeState={(s) => setEye(s === "appearing" ? "listening" : s)}
+                onLevel={setLevel}
                 onFinish={() => {
                   setCmdKey(null);
                   setEye("idle");
@@ -87,7 +90,7 @@ export default function TitleBar({ settings }: Props) {
             <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.1"><rect x="1" y="1" width="8" height="8" /></svg>
           )}
         </button>
-        <button className="wc wc--close" onClick={() => win.hide()} title="Close to tray">
+        <button className="wc wc--close" onClick={() => api.hideCalendar()} title="Close to tray">
           <svg width="10" height="10" viewBox="0 0 10 10"><path d="M1 1l8 8M9 1L1 9" stroke="currentColor" strokeWidth="1.2" /></svg>
         </button>
       </div>

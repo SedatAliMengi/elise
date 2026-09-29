@@ -10,6 +10,7 @@ import {
   startOfDay,
   startOfYear,
 } from "date-fns";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api, on } from "../lib/api";
@@ -48,6 +49,24 @@ export default function CalendarApp() {
   const [scopeReq, setScopeReq] = useState<ScopeReq | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
+  // Hidden to the tray (or minimized): render nothing so nothing animates.
+  const [shown, setShown] = useState(true);
+  const [minimized, setMinimized] = useState(false);
+  useEffect(() => {
+    // document.hidden is unreliable in WebView2 (stays true after a hidden start),
+    // so trust the backend's show/hide events and Tauri's minimized state.
+    api.isCalendarVisible().then(setShown).catch(() => {});
+    const off = on<boolean>("main-visible", (v) => {
+      setShown(v);
+      if (v) setVersion((x) => x + 1); // catch up on anything changed while suspended
+    });
+    const win = getCurrentWindow();
+    const un = win.onResized(() => win.isMinimized().then(setMinimized));
+    return () => {
+      off();
+      un.then((f) => f());
+    };
+  }, []);
 
   // ----- visible range -----
   const { from, to, days } = useMemo(() => {
@@ -91,14 +110,11 @@ export default function CalendarApp() {
 
   useEffect(() => {
     const offs = [on("events-changed", () => setVersion((v) => v + 1)), on("open-settings", () => setSettingsOpen(true))];
-    const onVis = () => document.documentElement.classList.toggle("hidden-doc", document.hidden);
-    document.addEventListener("visibilitychange", onVis);
     // Refresh "today" markers when the window comes back after midnight.
     const onFocus = () => setVersion((v) => v + 1);
     window.addEventListener("focus", onFocus);
     return () => {
       offs.forEach((f) => f());
-      document.removeEventListener("visibilitychange", onVis);
       window.removeEventListener("focus", onFocus);
     };
   }, []);
@@ -268,6 +284,7 @@ export default function CalendarApp() {
   });
 
   const viewKey = `${view}-${toNaive(from)}`;
+  if (!shown || minimized) return <div className="app" />;
   const showAgenda = view === "month" || view === "year";
 
   return (

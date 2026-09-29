@@ -340,6 +340,18 @@ fn run_tool(app: &AppHandle, name: &str, input: &Value, changes: &mut Vec<Change
         (s.default_reminder_time.clone(), s.default_event_minutes)
     };
     let mut db = state.db.lock().unwrap();
+    exec_tool(&mut db, &default_time, default_len, name, input, changes)
+}
+
+fn exec_tool(
+    db: &mut crate::db::Db,
+    default_time: &str,
+    default_len: i64,
+    name: &str,
+    input: &Value,
+    changes: &mut Vec<Change>,
+) -> Result<ToolOutcome, String> {
+    let db = &mut *db;
     let str_field = |k: &str| input.get(k).and_then(Value::as_str).map(|s| s.trim().to_string()).filter(|s| !s.is_empty());
 
     match name {
@@ -362,11 +374,11 @@ fn run_tool(app: &AppHandle, name: &str, input: &Value, changes: &mut Vec<Change
                 recurrence: input.get("recurrence").and_then(parse_recurrence),
                 exdates: vec![],
                 parent_id: None,
-                reminders: input.get("reminders").map(|r| parse_reminders(r, &default_time)).unwrap_or_default(),
+                reminders: input.get("reminders").map(|r| parse_reminders(r, default_time)).unwrap_or_default(),
                 created_at: None,
                 updated_at: None,
             };
-            let (saved, ch) = events::create(&mut db, ev)?;
+            let (saved, ch) = events::create(db, ev)?;
             changes.extend(ch);
             Ok(ToolOutcome::Result(format!("Created. {}", occ_line(&saved, saved.start))))
         }
@@ -414,7 +426,7 @@ fn run_tool(app: &AppHandle, name: &str, input: &Value, changes: &mut Vec<Change
             }
             if let Some(r) = input.get("reminders") {
                 // Keep ids of identical reminders so they aren't re-fired.
-                let mut new = parse_reminders(r, &default_time);
+                let mut new = parse_reminders(r, default_time);
                 for n in new.iter_mut() {
                     if let Some(o) = series.reminders.iter().find(|o| o.offset_min == n.offset_min && o.at_time == n.at_time && o.at == n.at) {
                         n.id = o.id.clone();
@@ -422,7 +434,7 @@ fn run_tool(app: &AppHandle, name: &str, input: &Value, changes: &mut Vec<Change
                 }
                 ev.reminders = new;
             }
-            let (saved, ch) = events::edit(&mut db, &id, occ_start, scope, ev)?;
+            let (saved, ch) = events::edit(db, &id, occ_start, scope, ev)?;
             changes.extend(ch);
             Ok(ToolOutcome::Result(format!("Updated. {}", occ_line(&saved, saved.start))))
         }
@@ -434,7 +446,7 @@ fn run_tool(app: &AppHandle, name: &str, input: &Value, changes: &mut Vec<Change
                 Some("following") => Scope::Following,
                 _ => Scope::All,
             };
-            let ch = events::remove(&mut db, &id, occ_start, scope)?;
+            let ch = events::remove(db, &id, occ_start, scope)?;
             changes.extend(ch);
             Ok(ToolOutcome::Result("Deleted.".into()))
         }
@@ -446,7 +458,7 @@ fn run_tool(app: &AppHandle, name: &str, input: &Value, changes: &mut Vec<Change
             if from.is_some() || to.is_some() {
                 let f = from.unwrap_or_else(|| now().date());
                 let t = to.unwrap_or(f) + Duration::days(1);
-                for o in events::list_occurrences(&db, f.and_hms_opt(0, 0, 0).unwrap(), t.and_hms_opt(0, 0, 0).unwrap())? {
+                for o in events::list_occurrences(db, f.and_hms_opt(0, 0, 0).unwrap(), t.and_hms_opt(0, 0, 0).unwrap())? {
                     if q.as_ref().map_or(true, |q| o.event.title.to_lowercase().contains(&q.to_lowercase())) {
                         lines.push(occ_line(&o.event, o.start));
                     }
@@ -652,5 +664,73 @@ fn finish(app: &AppHandle, session: Session, final_text: String) -> CommandResul
         CommandResult::error("I didn't catch that. Could you say it differently?")
     } else {
         CommandResult { kind: "answer".into(), message: t.to_string(), summary: vec![], history_id: None }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::db::Db;
+
+    fn run(db: &mut Db, name: &str, input: Value) -> (String, Vec<Change>) {
+        let mut ch = vec![];
+        match exec_tool(db, "09:00", 60, name, &input, &mut ch).unwrap() {
+            ToolOutcome::Result(r) => (r, ch),
+            ToolOutcome::Clarify(q) => (q, ch),
+        }
+    }
+
+    #[test]
+    fn doctor_example_from_the_prd() {
+        let mut db = Db::memory().unwrap();
+        let (_, ch) = run(
+            &mut db,
+            "create_event",
+            json!({"title": "Doctor appointment", "start": "2027-07-05T22:00:00",
+                   "reminders": [{"days_before": 2}, {"days_before": 1}]}),
+        );
+        let ev = ch[0].after.clone().unwrap();
+        assert_eq!(ev.end.unwrap().format("%H:%M").to_string(), "23:00");
+        assert_eq!(ev.reminders.len(), 2);
+        assert!(ev.reminders.iter().all(|r| r.at_time.as_deref() == Some("09:00")));
+        let s = summarize(&ch[0]);
+        assert!(s.contains("Doctor appointment") && s.contains("2d before 09:00") && s.contains("1d before 09:00"), "{s}");
+    }
+
+    #[test]
+    fn move_repeat_find_delete() {
+        let mut db = Db::memory().unwrap();
+        let (_, ch) = run(&mut db, "create_event", json!({"title": "Dentist", "start": "2027-03-10T15:00:00"}));
+        let id = ch[0].after.as_ref().unwrap().id.clone();
+
+        // "push it one hour later"
+        run(&mut db, "update_event", json!({"event_id": id, "start": "2027-03-10T16:00:00"}));
+        let ev = db.get_event(&id).unwrap().unwrap();
+        assert_eq!(ev.start.format("%H:%M").to_string(), "16:00");
+        assert_eq!(ev.end.unwrap().format("%H:%M").to_string(), "17:00");
+
+        // "change the reminder to 30 minutes before"
+        run(&mut db, "update_event", json!({"event_id": id, "reminders": [{"minutes_before": 30}]}));
+        assert_eq!(db.get_event(&id).unwrap().unwrap().reminders[0].offset_min, Some(30));
+
+        // "every Monday at 8 take out the trash"
+        run(&mut db, "create_event", json!({"title": "Trash", "start": "2027-03-15T08:00:00",
+            "recurrence": {"freq": "weekly", "by_weekday": ["mon"]}}));
+        let (found, _) = run(&mut db, "find_events", json!({"from": "2027-03-15", "to": "2027-03-29"}));
+        assert_eq!(found.matches("Trash").count(), 3, "{found}");
+
+        let (_, ch) = run(&mut db, "delete_event", json!({"event_id": id}));
+        assert!(ch[0].after.is_none());
+        assert!(db.get_event(&id).unwrap().is_none());
+    }
+
+    #[test]
+    fn all_day_birthday_yearly() {
+        let mut db = Db::memory().unwrap();
+        let (_, ch) = run(&mut db, "create_event", json!({"title": "Mom's birthday", "start": "2027-03-03",
+            "all_day": true, "recurrence": {"freq": "yearly"}, "reminders": [{"days_before": 7}]}));
+        let ev = ch[0].after.clone().unwrap();
+        assert!(ev.all_day && ev.end.is_none());
+        assert_eq!(ev.reminders[0].offset_min, Some(7 * 1440));
     }
 }

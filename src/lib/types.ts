@@ -81,3 +81,15 @@ export interface ReminderPayload {
 export type OverlayMode = "hidden" | "compact" | "expanded";
 
 export type EyeState = "appearing" | "idle" | "listening" | "thinking" | "speaking" | "error" | "vanishing" | "closed";
+
+export interface VoiceStatus {
+  available: boolean;
+  message: string;
+}
+
+export interface VoiceEvent {
+  evt: "listening" | "level" | "transcribing" | "final" | "error";
+  v?: number;
+  text?: string;
+  msg?: string;
+}

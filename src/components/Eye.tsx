@@ -5,8 +5,8 @@ import "./Eye.css";
 
 /**
  * Elise's eye: almond outline, electric-purple iris, glowing red pupil.
- * Everything animates with transforms/opacity or a single path `d`, and all
- * loops stop while the document is hidden.
+ * Everything animates with transforms/opacity or a single path `d`. Hosts
+ * unmount the eye while their window is hidden, which stops every loop.
  */
 
 const VB_W = 220;
@@ -83,7 +83,7 @@ export default function Eye({ state, size = 120, level = 0, dim, onClick, onMous
     const loop = () => {
       t = window.setTimeout(() => {
         const s = stateRef.current;
-        if (!document.hidden && (s === "idle" || s === "listening" || s === "speaking")) {
+        if ((s === "idle" || s === "listening" || s === "speaking")) {
           animate(open, [1, 0.05, 1], { duration: 0.2, times: [0, 0.45, 1], ease: "easeInOut" });
         }
         loop();
@@ -103,11 +103,9 @@ export default function Eye({ state, size = 120, level = 0, dim, onClick, onMous
     let t: number;
     const loop = () => {
       t = window.setTimeout(() => {
-        if (!document.hidden) {
-          const center = Math.random() < 0.35;
-          lookX.set(center ? 0 : rand(-12, 12));
-          lookY.set(center ? 0 : rand(-5, 5));
-        }
+        const center = Math.random() < 0.35;
+        lookX.set(center ? 0 : rand(-12, 12));
+        lookY.set(center ? 0 : rand(-5, 5));
         loop();
       }, rand(2200, 4200));
     };

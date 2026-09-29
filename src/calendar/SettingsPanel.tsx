@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { api } from "../lib/api";
 import { englishVoices, speak } from "../lib/speech";
 import type { Settings } from "../lib/types";
+import { useVoiceStatus } from "../lib/useSettings";
 
 interface Props {
   settings: Settings;
@@ -38,6 +39,7 @@ export default function SettingsPanel({ settings, onClose }: Props) {
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [capturing, setCapturing] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const voice = useVoiceStatus();
 
   useEffect(() => {
     api.hasApiKey().then(setHasKey);
@@ -161,6 +163,10 @@ export default function SettingsPanel({ settings, onClose }: Props) {
               </button>
             </div>
             <Toggle label='Listen for "Hey Elise"' hint="Uses the laptop microphone, fully offline" on={settings.wakeWord} onChange={(v) => update({ wakeWord: v })} />
+            <div className="set-row__hint voice-status">
+              Voice engine: {voice.available ? <b className="ok">running</b> : <b className="bad">not running</b>}
+              {voice.message && ` · ${voice.message}`}
+            </div>
             <Toggle label="Hover on screen" hint="Keep a small eye on screen; drag it anywhere" on={settings.hoverMode} onChange={(v) => update({ hoverMode: v })} />
             {settings.hoverMode && (
               <div className="set-row">

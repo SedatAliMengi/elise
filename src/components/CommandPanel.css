@@ -155,4 +155,23 @@
 .cmd__input .btn {
   height: 40px;
   width: 40px;
+  flex: none;
+}
+.cmd__mic {
+  color: var(--text-dim);
+}
+.cmd__mic.on {
+  color: #fff;
+  background: var(--pupil);
+  border-color: var(--pupil-glow);
+  box-shadow: var(--glow-pupil);
+  animation: mic-pulse 1.4s ease-in-out infinite;
+}
+@keyframes mic-pulse {
+  50% {
+    box-shadow: 0 0 22px rgba(255, 42, 42, 0.7);
+  }
+}
+.cmd__input--mic .input::placeholder {
+  color: var(--iris-glow);
 }

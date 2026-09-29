@@ -89,8 +89,3 @@
 .eye--dim:hover svg {
   filter: none;
 }
-
-/* No animation work while the window is hidden. */
-:root.hidden-doc .eye * {
-  animation-play-state: paused !important;
-}

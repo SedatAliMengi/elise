@@ -7,6 +7,8 @@ mod recur;
 mod scheduler;
 mod settings;
 mod tray;
+mod voice;
+mod webview;
 
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -52,12 +54,24 @@ pub fn notify_changed(app: &AppHandle) {
 
 pub fn show_main(app: &AppHandle, open_settings: bool) {
     if let Some(w) = app.get_webview_window("main") {
+        webview::set_active(&w, true);
+        let _ = app.emit_to("main", "main-visible", true);
         let _ = w.unminimize();
         let _ = w.show();
         let _ = w.set_focus();
         if open_settings {
             let _ = app.emit_to("main", "open-settings", ());
         }
+    }
+}
+
+/// Hide the calendar to the tray. The page is told so it can stop all
+/// rendering (WebView2 doesn't report hidden windows as hidden).
+pub fn hide_main(app: &AppHandle) {
+    if let Some(w) = app.get_webview_window("main") {
+        let _ = app.emit_to("main", "main-visible", false);
+        let _ = w.hide();
+        webview::set_active(&w, false);
     }
 }
 
@@ -101,6 +115,9 @@ pub fn apply_settings(app: &AppHandle, next: Settings) -> CmdResult<Settings> {
     }
     if prev.hover_mode != next.hover_mode && overlay::mode(app) != Mode::Expanded {
         overlay::set_mode(app, overlay::resting_mode(app));
+    }
+    if prev.wake_word != next.wake_word {
+        voice::set_wake(app, next.wake_word);
     }
     if prev.default_reminder_time != next.default_reminder_time {
         notify_changed(app);
@@ -284,9 +301,36 @@ fn reminder_toast(app: AppHandle, title: String, body: String) {
     let _ = app.notification().builder().title(title).body(body).show();
 }
 
+// ---------------- commands: voice ----------------
+
+#[tauri::command]
+fn voice_listen(app: AppHandle, window: tauri::Window) {
+    voice::listen(&app, window.label());
+}
+
+#[tauri::command]
+fn voice_cancel(app: AppHandle) {
+    voice::cancel(&app);
+}
+
+#[tauri::command]
+fn voice_status(app: AppHandle) -> voice::VoiceStatus {
+    voice::status(&app)
+}
+
 #[tauri::command]
 fn show_calendar(app: AppHandle, settings: Option<bool>) {
     show_main(&app, settings.unwrap_or(false));
+}
+
+#[tauri::command]
+fn hide_calendar(app: AppHandle) {
+    hide_main(&app);
+}
+
+#[tauri::command]
+fn is_calendar_visible(app: AppHandle) -> bool {
+    app.get_webview_window("main").and_then(|w| w.is_visible().ok()).unwrap_or(false)
 }
 
 #[tauri::command]
@@ -334,6 +378,9 @@ pub fn run() {
                 ignore_moves: AtomicBool::new(false),
             });
 
+            app.manage(voice::Voice::default());
+            voice::start(&handle);
+
             let checks = tray::build(&handle)?;
             *app.state::<AppState>().tray.lock().unwrap() = Some(checks);
 
@@ -358,7 +405,11 @@ pub fn run() {
             WindowEvent::CloseRequested { api, .. } => {
                 // Closing any window just hides it; Elise lives in the tray.
                 api.prevent_close();
-                let _ = window.hide();
+                if window.label() == "main" {
+                    hide_main(window.app_handle());
+                } else {
+                    let _ = window.hide();
+                }
             }
             WindowEvent::Moved(pos) if window.label() == overlay::LABEL => {
                 overlay::on_moved(window.app_handle(), *pos);
@@ -389,9 +440,19 @@ pub fn run() {
             take_reminders,
             reminder_action,
             reminder_toast,
+            voice_listen,
+            voice_cancel,
+            voice_status,
             show_calendar,
+            hide_calendar,
+            is_calendar_visible,
             quit,
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running Elise");
+        .build(tauri::generate_context!())
+        .expect("error while building Elise")
+        .run(|app, event| {
+            if let tauri::RunEvent::Exit = event {
+                voice::shutdown(app);
+            }
+        });
 }

@@ -1,12 +1,13 @@
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { api, newSessionId } from "../lib/api";
+import { api, newSessionId, on } from "../lib/api";
 import { speak, stopSpeaking } from "../lib/speech";
-import type { CommandResult, EyeState, Settings } from "../lib/types";
-import { voiceOpts } from "../lib/useSettings";
+import type { CommandResult, EyeState, Settings, VoiceEvent } from "../lib/types";
+import { useVoiceStatus, voiceOpts } from "../lib/useSettings";
 import "./CommandPanel.css";
 
 type Phase = "input" | "thinking" | "done" | "answer" | "clarify" | "error" | "undone";
+type Mic = "off" | "listening" | "transcribing";
 
 interface Props {
   settings: Settings;
@@ -14,29 +15,44 @@ interface Props {
   greet?: boolean;
   placement: "overlay" | "calendar";
   onEyeState: (s: EyeState) => void;
+  /** Microphone level 0..1 while listening (drives the pupil). */
+  onLevel?: (v: number) => void;
   /** Elise is finished; the host should close/vanish. */
   onFinish: () => void;
-  /** Text to submit immediately (e.g. a voice transcript). */
-  initialText?: string;
+  /** Summoned by voice: start listening right after the greeting. */
+  autoListen?: boolean;
 }
 
 const INACTIVITY_MS = 20_000;
 
-export default function CommandPanel({ settings, greet = true, placement, onEyeState, onFinish, initialText }: Props) {
+export default function CommandPanel({ settings, greet = true, placement, onEyeState, onLevel, onFinish, autoListen }: Props) {
   const greeting = `Hello ${settings.userName || "Enigma"}, what is your command?`;
+  const voice = useVoiceStatus();
   const [phase, setPhase] = useState<Phase>("input");
   const [bubble, setBubble] = useState(greet ? greeting : "What is your command?");
   const [summary, setSummary] = useState<string[]>([]);
   const [historyId, setHistoryId] = useState<string | null>(null);
   const [text, setText] = useState("");
+  const [mic, setMic] = useState<Mic>("off");
   const inputRef = useRef<HTMLInputElement>(null);
   const session = useRef(newSessionId());
   const hovered = useRef(false);
   const closeTimer = useRef<number | undefined>(undefined);
   const idleTimer = useRef<number | undefined>(undefined);
   const finished = useRef(false);
+  const micRef = useRef<Mic>("off");
+  micRef.current = mic;
+  /** The conversation is being held by voice: keep listening after questions. */
+  const voiceMode = useRef(!!autoListen);
   const settingsRef = useRef(settings);
   settingsRef.current = settings;
+
+  const stopMic = useCallback(() => {
+    if (micRef.current !== "off") api.voiceCancel().catch(() => {});
+    micRef.current = "off";
+    setMic("off");
+    onLevel?.(0);
+  }, [onLevel]);
 
   const finish = useCallback(() => {
     if (finished.current) return;
@@ -44,9 +60,10 @@ export default function CommandPanel({ settings, greet = true, placement, onEyeS
     clearTimeout(closeTimer.current);
     clearTimeout(idleTimer.current);
     stopSpeaking();
+    stopMic();
     api.cancelSession(session.current).catch(() => {});
     onFinish();
-  }, [onFinish]);
+  }, [onFinish, stopMic]);
 
   /** Close after `ms`, but not while the mouse rests on the panel. */
   const closeAfter = useCallback(
@@ -64,19 +81,33 @@ export default function CommandPanel({ settings, greet = true, placement, onEyeS
   const bumpIdle = useCallback(() => {
     clearTimeout(idleTimer.current);
     idleTimer.current = window.setTimeout(() => {
-      if (!hovered.current) finish();
+      if (!hovered.current && micRef.current === "off") finish();
       else bumpIdle();
     }, INACTIVITY_MS);
   }, [finish]);
 
-  // Greeting.
+  const startMic = useCallback(() => {
+    if (finished.current) return;
+    stopSpeaking();
+    clearTimeout(closeTimer.current);
+    micRef.current = "listening";
+    setMic("listening");
+    onEyeState("listening");
+    api.voiceListen().catch(() => {
+      micRef.current = "off";
+      setMic("off");
+    });
+    bumpIdle();
+  }, [onEyeState, bumpIdle]);
+
+  // Greeting (and, when summoned by voice, listen right after it).
   useEffect(() => {
     onEyeState(greet ? "appearing" : "idle");
     const t = window.setTimeout(() => onEyeState("listening"), greet ? 550 : 0);
-    if (greet) speak(greeting, voiceOpts(settingsRef.current));
-    inputRef.current?.focus();
+    const spoken = greet ? speak(greeting, voiceOpts(settingsRef.current)) : Promise.resolve();
+    if (autoListen) spoken.then(() => startMic());
+    else inputRef.current?.focus();
     bumpIdle();
-    if (initialText) submit(initialText);
     return () => {
       clearTimeout(t);
       clearTimeout(closeTimer.current);
@@ -84,6 +115,49 @@ export default function CommandPanel({ settings, greet = true, placement, onEyeS
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Voice engine events for this panel.
+  useEffect(
+    () =>
+      on<VoiceEvent>("voice", (e) => {
+        if (micRef.current === "off" || finished.current) return;
+        switch (e.evt) {
+          case "level":
+            onLevel?.(e.v ?? 0);
+            break;
+          case "transcribing":
+            micRef.current = "transcribing";
+            setMic("transcribing");
+            onLevel?.(0);
+            onEyeState("thinking");
+            break;
+          case "final": {
+            micRef.current = "off";
+            setMic("off");
+            onLevel?.(0);
+            const heard = (e.text ?? "").trim();
+            if (heard) submit(heard);
+            else {
+              setBubble("I didn't hear anything. Say it again, or type it.");
+              onEyeState("listening");
+              inputRef.current?.focus();
+            }
+            break;
+          }
+          case "error":
+            micRef.current = "off";
+            setMic("off");
+            onLevel?.(0);
+            setPhase("error");
+            setBubble(e.msg === "no_mic" ? "I can't hear you. Check your microphone." : "My ears failed me. Please type it.");
+            onEyeState("error");
+            inputRef.current?.focus();
+            break;
+        }
+      }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
 
   const handleResult = async (r: CommandResult) => {
     setSummary(r.summary);
@@ -110,7 +184,8 @@ export default function CommandPanel({ settings, greet = true, placement, onEyeS
         onEyeState("speaking");
         await speak(r.message, vo);
         onEyeState("listening");
-        inputRef.current?.focus();
+        if (voiceMode.current && voice.available) startMic();
+        else inputRef.current?.focus();
         bumpIdle();
         break;
       case "error":
@@ -127,6 +202,10 @@ export default function CommandPanel({ settings, greet = true, placement, onEyeS
   async function submit(raw?: string) {
     const t = (raw ?? text).trim();
     if (!t || phase === "thinking") return;
+    if (raw === undefined) {
+      voiceMode.current = false; // typed: don't auto-listen afterwards
+      stopMic();
+    }
     clearTimeout(closeTimer.current);
     clearTimeout(idleTimer.current);
     stopSpeaking();
@@ -160,6 +239,18 @@ export default function CommandPanel({ settings, greet = true, placement, onEyeS
     }
   };
 
+  const toggleMic = () => {
+    if (mic === "off") {
+      voiceMode.current = true;
+      startMic();
+    } else {
+      voiceMode.current = false;
+      stopMic();
+      onEyeState("listening");
+      inputRef.current?.focus();
+    }
+  };
+
   const onKey = (e: React.KeyboardEvent) => {
     if (e.key === "Escape") {
       e.preventDefault();
@@ -172,10 +263,12 @@ export default function CommandPanel({ settings, greet = true, placement, onEyeS
 
   const showInput = phase !== "done" && phase !== "undone" && phase !== "answer";
   const echo = phase === "thinking";
+  const placeholder =
+    mic === "listening" ? "Listening…" : mic === "transcribing" ? "Understanding what you said…" : phase === "clarify" ? "Your answer…" : "Type a command…";
 
   return (
     <motion.div
-      className={`cmd cmd--${placement} cmd--${phase} ${phase !== "done" && phase !== "undone" && phase !== "answer" ? "cmd--has-input" : ""}`}
+      className={`cmd cmd--${placement} cmd--${phase} ${showInput ? "cmd--has-input" : ""}`}
       initial={{ opacity: 0, y: placement === "overlay" ? 14 : -10, scale: 0.97 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: placement === "overlay" ? 10 : -8, scale: 0.97, transition: { duration: 0.2 } }}
@@ -195,7 +288,13 @@ export default function CommandPanel({ settings, greet = true, placement, onEyeS
             transition={{ duration: 0.18 }}
           >
             {echo ? <>“{bubble}”</> : bubble}
-            {echo && <span className="cmd__dots"><i /><i /><i /></span>}
+            {echo && (
+              <span className="cmd__dots">
+                <i />
+                <i />
+                <i />
+              </span>
+            )}
           </motion.div>
         </AnimatePresence>
         {summary.length > 0 && (
@@ -215,19 +314,36 @@ export default function CommandPanel({ settings, greet = true, placement, onEyeS
       </div>
 
       {showInput && (
-        <div className="cmd__input">
+        <div className={`cmd__input ${mic !== "off" ? "cmd__input--mic" : ""}`}>
           <input
             ref={inputRef}
             className="input"
-            placeholder={phase === "clarify" ? "Your answer…" : "Type a command…"}
+            placeholder={placeholder}
             value={text}
             disabled={phase === "thinking"}
             onChange={(e) => {
               setText(e.target.value);
+              if (micRef.current !== "off") {
+                voiceMode.current = false;
+                stopMic();
+              }
               bumpIdle();
             }}
             spellCheck={false}
           />
+          {voice.available && (
+            <button
+              className={`btn icon cmd__mic ${mic !== "off" ? "on" : ""}`}
+              onClick={toggleMic}
+              disabled={phase === "thinking" || mic === "transcribing"}
+              title={mic === "off" ? "Speak" : "Stop listening"}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <rect x="9" y="3" width="6" height="11" rx="3" />
+                <path d="M5 11a7 7 0 0 0 14 0M12 18v3" />
+              </svg>
+            </button>
+          )}
           <button className="btn primary icon" onClick={() => submit()} disabled={!text.trim() || phase === "thinking"} title="Send (Enter)">
             ➤
           </button>

@@ -1,7 +1,7 @@
 # Elise — Product Requirements Document
 
 **Owner:** Enigma (personal use, single user, single Windows laptop)
-**Status:** Draft v1 — awaiting approval
+**Status:** Approved 2026-09-29 — in build (see §11 for progress)
 **Date:** 2026-09-29
 
 ---
@@ -46,7 +46,7 @@ Elise's eye "overseeing" it from the top middle.
 | Storage | **SQLite** (`rusqlite`, bundled) at `%APPDATA%\Elise\elise.db` | Reliable, handles years of events |
 | Settings | JSON at `%APPDATA%\Elise\settings.json` | Simple |
 | API key storage | **Windows Credential Manager** (`keyring` crate) | Never stored in plain text or in the repo |
-| Command understanding | **Claude API**, model **`claude-haiku-4-5-20251001`** (cheapest and fastest), using **tool use** for structured output | Reliable natural-language understanding at a tiny cost |
+| Command understanding | **Claude API**, model **`claude-haiku-4-5`** (cheapest and fastest), using **tool use** for structured output | Reliable natural-language understanding at a tiny cost |
 | Wake word ("Hey Elise") | Local, offline. **Vosk** small English model in grammar mode (`["hey elise", "[unk]"]`) | Free, no key, low CPU |
 | Speech-to-text (the command) | Local, offline. **faster-whisper** `base.en` (int8, CPU), loaded on demand | Free, no key, accurate |
 | Voice pipeline host | Small **Python sidecar** (`elise-voice`) packaged with PyInstaller, spawned by Tauri, talking to it by JSON lines over stdin/stdout | The best offline speech libraries are Python. The sidecar keeps them isolated from the app. |
@@ -243,7 +243,7 @@ clicking it takes a command.
 - **Input:** the command text (typed or transcribed), plus context: current local
   date/time, weekday, time zone, and a compact list of events relevant to the command
   (e.g. the next 60 days + keyword matches).
-- **Model:** `claude-haiku-4-5-20251001`, called from the **Rust backend**, so the key
+- **Model:** `claude-haiku-4-5`, called from the **Rust backend**, so the key
   never reaches the webview.
 - **Tools** exposed to the model:
   - `create_event(title, start, end|all_day, location?, notes?, recurrence?, reminders[]?)`
@@ -336,8 +336,8 @@ Opened from the tray or from a gear icon in the calendar window.
 events
   id            TEXT PK (uuid)
   title         TEXT NOT NULL
-  start_utc     TEXT (ISO)          -- stored UTC, displayed in local time
-  end_utc       TEXT (ISO) NULL
+  start         TEXT                -- local wall-clock time (see §11 note)
+  end           TEXT NULL
   all_day       INTEGER (0/1)
   location      TEXT NULL
   notes         TEXT NULL
@@ -451,3 +451,39 @@ exact milestone.
 - Turkish language.
 - Daily morning briefing ("Good morning Enigma, today you have…").
 - Custom-trained "Hey Elise" wake-word model for better accuracy.
+
+---
+
+## 11. Build progress & implementation notes
+
+| # | Milestone | Status |
+|---|---|---|
+| M0 | Scaffold, tray, single instance, autostart, close-to-tray | ✅ done |
+| M1 | Eye component + palette + icons | ✅ done (`src/components/Eye.tsx`, `scripts/make-icons.mjs`) |
+| M2 | SQLite + CRUD + recurrence | ✅ done, unit-tested |
+| M3 | Calendar views, editor, drag-to-move, search, jump to any year | ✅ done, verified in the running app |
+| M4 | Reminder scheduler + overlay + snooze + toast fallback + missed | ✅ done, verified (reminder fired on time, snooze works) |
+| M5 | Overlay summon (tray/hotkey/eye click), typed input, hover mode + drag | ✅ done, verified |
+| M6 | Settings + API key (Credential Manager) + Claude command engine | ✅ built; tool execution unit-tested; **live test needs the API key** |
+| M7 | Voice output behind toggle | ✅ built (`src/lib/speech.ts`) |
+| M8 | Voice sidecar: wake word + Whisper | ✅ code complete & wired in; **engine install pending** (slow network — run `voice\setup.ps1`) |
+| M9 | Polish, perf check, installer | ✅ idle CPU ≈ 0 %, NSIS installer built |
+
+Implementation notes (decisions made while building):
+- **Times are stored as local wall-clock time**, not UTC. A 09:00 event stays at 09:00 across DST
+  changes and repeating events don't drift. Fine for a single-laptop calendar.
+- Recurrence is stored as a small JSON rule (`freq/interval/byWeekday/until/count`), not an RRULE string.
+  Months without the start day (e.g. the 31st) are skipped, like Google Calendar.
+- Reminders created after their fire time never fire retroactively (no instant "missed" popups
+  when adding an event for tomorrow with a 2-day reminder).
+- The spoken greeting finishes **before** the mic starts recording, so Elise never hears herself.
+- **Performance (measured):** idle CPU ≈ 0 % with the calendar in the tray (hidden webviews are
+  suspended / set to low-memory). Memory is ~300 MB private, almost all of it the WebView2 runtime
+  itself; the original ≤ 200 MB target was not realistic for a WebView2 app. The Python voice
+  engine adds ~60 MB with the wake word on, plus ~150 MB for Whisper only while transcribing
+  (unloaded after 5 idle minutes).
+- **Voice engine location:** it runs from `voice\.venv` inside the project folder (no separate
+  packaging), so keep the Elise folder where it is. `voice\setup.ps1` installs it and pre-downloads
+  both models. Until it's installed, the mic button is hidden and typing works as normal.
+- Esc could not be tested automatically (the test tool reserves that key); it's wired in the
+  overlay, the editor and all dialogs.

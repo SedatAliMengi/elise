@@ -32,3 +32,7 @@ Tauri 2 (Rust) + React/TS/Vite. Single user ("Enigma"), local only.
 - TS: `npx tsc --noEmit`
 - Run: `npm run tauri dev` · Build installer: `npm run tauri build` (NSIS, `src-tauri/target/release/bundle/nsis/`)
 - Icons: `node scripts/make-icons.mjs` (renders the eye → `tauri icon`)
+- Dev gotcha: after a Rust hot-rebuild the window can stay black (WebView2 didn't start). Kill `elise.exe`
+  and rerun `npm run tauri dev`.
+- WebView2 never reports hidden windows via `document.hidden`; the backend emits `main-visible` and
+  suspends the hidden calendar (`webview.rs`). Don't rely on the Page Visibility API.

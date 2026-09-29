@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, on } from "./api";
-import type { Settings } from "./types";
+import type { Settings, VoiceStatus } from "./types";
 
 export const DEFAULT_SETTINGS: Settings = {
   userName: "Enigma",
@@ -29,3 +29,13 @@ export function useSettings(): Settings {
 }
 
 export const voiceOpts = (s: Settings) => ({ enabled: s.voiceResponses, voiceName: s.voiceName, rate: s.voiceRate });
+
+/** Whether the offline voice engine is running (and any status message). */
+export function useVoiceStatus(): VoiceStatus {
+  const [s, setS] = useState<VoiceStatus>({ available: false, message: "" });
+  useEffect(() => {
+    api.voiceStatus().then(setS).catch(() => {});
+    return on<VoiceStatus>("voice-status", setS);
+  }, []);
+  return s;
+}

@@ -63,6 +63,7 @@ pub fn set_mode(app: &AppHandle, mode: Mode) {
 
     if mode == Mode::Hidden {
         let _ = w.hide();
+        crate::webview::set_active(&w, false);
         let _ = app.emit_to(LABEL, "overlay-mode", mode);
         return;
     }
@@ -86,6 +87,7 @@ pub fn set_mode(app: &AppHandle, mode: Mode) {
             (ew, eh, x, y)
         }
     };
+    crate::webview::set_active(&w, true);
     state.ignore_moves.store(true, Ordering::SeqCst);
     let _ = w.set_size(PhysicalSize::new(w_px as u32, h_px as u32));
     let _ = w.set_position(PhysicalPosition::new(x, y));
