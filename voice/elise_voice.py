@@ -23,6 +23,7 @@ import gc
 import json
 import os
 import queue
+import re
 import sys
 import threading
 import time
@@ -38,11 +39,14 @@ VOSK_URL = f"https://alphacephei.com/vosk/models/{VOSK_NAME}.zip"
 WHISPER_NAME = "base.en"
 WHISPER_IDLE_UNLOAD_S = 300
 
-# Phrases that count as the wake word. Vosk's small model may hear "elise"
-# as a close neighbour, so a few are accepted; only words present in the
-# model vocabulary are used.
-WAKE_PHRASES = ["hey elise", "hey eliza", "hey alice", "hey elise's", "okay elise", "hi elise"]
-WAKE_WORDS = {"elise", "eliza", "alice", "elise's"}
+# Stage 1 (cheap, always on): Vosk in grammar mode spots these phrases.
+# Anything else falls into "[unk]". Adding look-alike names here makes the
+# grammar grab ordinary speech, so keep it tight.
+WAKE_PHRASES = ["hey elise", "okay elise", "hi elise"]
+# Stage 2 (only after stage 1 fires): Whisper re-listens to the last few
+# seconds and must hear the name. This rejects look-alikes like "hey, at least".
+NAME_RE = re.compile(r"\b(elise|elyse|elise's|eliza|alise|elice|ellis)\b", re.I)
+WAKE_WINDOW_S = 2.5
 
 PROMPT = (
     "Hey Elise, add a doctor appointment on July 5th at 10pm and remind me two days before. "
@@ -79,6 +83,7 @@ class Voice:
         self.whisper_used = 0.0
         self.whisper_lock = threading.Lock()
 
+        self.recent: list[np.ndarray] = []  # last few seconds while wake listening
         self.rec_buf: list[np.ndarray] = []
         self.rec_started = 0.0
         self.speech_started = False
@@ -115,6 +120,8 @@ class Voice:
                 vocab = {line.split()[0] for line in f if line.strip()}
         phrases = [p for p in WAKE_PHRASES if not vocab or all(w in vocab for w in p.split())]
         log("wake phrases:", phrases)
+        # Whisper is not preloaded: it costs ~150 MB and is only needed once a
+        # wake candidate is heard (first check of a session takes ~1.5 s).
         self.rec = KaldiRecognizer(self.vosk_model, SR, json.dumps(phrases + ["[unk]"]))
         return True
 
@@ -192,7 +199,7 @@ class Voice:
             self.wake_on = on
             if on and not self.ensure_vosk():
                 self.wake_on = False
-            if self.mode in ("idle", "wake"):
+            if self.mode in ("idle", "wake", "verifying"):
                 self.mode = "wake" if self.wake_on else "idle"
             if self.rec is not None:
                 self.rec.Reset()
@@ -229,24 +236,48 @@ class Voice:
     def on_block(self, block: np.ndarray):
         mode = self.mode
         if mode == "wake" and self.rec is not None:
+            self.recent.append(block)
+            keep = int(WAKE_WINDOW_S * SR / BLOCK) + 4
+            if len(self.recent) > keep:
+                del self.recent[: len(self.recent) - keep]
+            # Only final results: partials are too eager.
             if self.rec.AcceptWaveform(block.tobytes()):
                 text = json.loads(self.rec.Result()).get("text", "")
-            else:
-                text = json.loads(self.rec.PartialResult()).get("partial", "")
-            words = set(text.split())
-            if words & WAKE_WORDS and ("hey" in words or "okay" in words or "hi" in words):
-                log("wake:", text)
-                self.rec.Reset()
-                with self.lock:
-                    self.mode = "armed"
-                    self.armed_until = time.time() + 12
-                emit(evt="wake")
-                threading.Thread(target=self.ensure_whisper, daemon=True).start()
+                if any(p in text for p in WAKE_PHRASES):
+                    log("wake candidate:", text)
+                    clip = np.concatenate(self.recent)
+                    self.recent = []
+                    with self.lock:
+                        self.mode = "verifying"
+                    threading.Thread(target=self.verify_wake, args=(clip,), daemon=True).start()
         elif mode == "armed":
             if time.time() > self.armed_until:
                 self.cancel()
         elif mode == "record":
             self.record_block(block)
+
+    def verify_wake(self, clip: np.ndarray):
+        heard = ""
+        try:
+            model = self.ensure_whisper()
+            segs, _ = model.transcribe(clip.astype(np.float32) / 32768.0, language="en", beam_size=1, condition_on_previous_text=False)
+            heard = " ".join(s.text.strip() for s in segs)
+        except Exception as e:  # noqa: BLE001
+            log("verify failed:", e)
+        ok = bool(NAME_RE.search(heard))
+        log("verify:", repr(heard), "->", ok)
+        with self.lock:
+            if self.mode != "verifying":
+                return
+            if self.rec is not None:
+                self.rec.Reset()
+            if ok:
+                self.mode = "armed"
+                self.armed_until = time.time() + 12
+            else:
+                self.mode = "wake" if self.wake_on else "idle"
+        if ok:
+            emit(evt="wake")
 
     def record_block(self, block: np.ndarray):
         self.rec_buf.append(block)

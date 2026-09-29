@@ -466,7 +466,7 @@ exact milestone.
 | M5 | Overlay summon (tray/hotkey/eye click), typed input, hover mode + drag | ✅ done, verified |
 | M6 | Settings + API key (Credential Manager) + Claude command engine | ✅ built; tool execution unit-tested; **live test needs the API key** |
 | M7 | Voice output behind toggle | ✅ built (`src/lib/speech.ts`) |
-| M8 | Voice sidecar: wake word + Whisper | ✅ code complete & wired in; **engine install pending** (slow network — run `voice\setup.ps1`) |
+| M8 | Voice sidecar: wake word + Whisper | ✅ installed; transcription + wake word verified on recorded clips; **live mic test by the user pending** |
 | M9 | Polish, perf check, installer | ✅ idle CPU ≈ 0 %, NSIS installer built |
 
 Implementation notes (decisions made while building):
@@ -485,5 +485,8 @@ Implementation notes (decisions made while building):
 - **Voice engine location:** it runs from `voice\.venv` inside the project folder (no separate
   packaging), so keep the Elise folder where it is. `voice\setup.ps1` installs it and pre-downloads
   both models. Until it's installed, the mic button is hidden and typing works as normal.
+- **Wake word is two-stage:** Vosk (grammar: "hey/okay/hi elise") spots a candidate, then Whisper
+  re-listens to the last 2.5 s and must hear the name. This rejects look-alikes such as
+  "hey, at least…" that fooled Vosk alone. Always-on listening: ~170 MB RAM, ~0.1 % CPU.
 - Esc could not be tested automatically (the test tool reserves that key); it's wired in the
   overlay, the editor and all dialogs.
