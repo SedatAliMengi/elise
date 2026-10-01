@@ -11,7 +11,8 @@ Elise lives in the Windows tray. Say her name or press <kbd>Ctrl</kbd>+<kbd>Alt<
 ## Features
 
 - **Natural-language commands**: add, move, rename, cancel and ask about events ("push the project meeting an hour later", "what do I have tomorrow?", "yarınki toplantıyı iptal et").
-- **Voice, fully offline**: the wake word ("Elise" / "Hey Elise") and speech-to-text run on your PC. No audio ever leaves the machine. Saying the command in one breath ("Elise, cancel lunch with Ali") skips the greeting.
+- **Voice, fully offline**: the wake word ("Elise" / "Hey Elise") and speech-to-text run on your PC. No audio ever leaves the machine. Saying the command in one breath ("Elise, cancel lunch with Ali") skips the greeting. She waits for natural pauses (2.5 s of silence) before acting, and never listens to herself while speaking.
+- **Hands-free conversation**: after each command she asks "Anything else?" and keeps listening. Answer with another command, or "no" / "that's all" / "hayır" to send her away.
 - **Reminders that come to you**: the eye appears with the reminder and reads it out (offline neural voice), with snooze. Missed reminders show up when the PC wakes.
 - **A real calendar UI**: year, month, week and day views, drag-and-drop, repeating events (with "this / following / all" edits), search, undo for every command.
 - **Built for a gaming PC**: starts with Windows, ~0% CPU while idle, the eye works over borderless games, and a "big eye on screen" mode.
@@ -47,10 +48,10 @@ The app is **Tauri 2** (a Rust backend with a React UI) rather than Electron, be
 | Test set | Commands | Accuracy |
 |---|---:|---:|
 | **All** | 104 | **97%** |
-| English | 58 | 97% |
-| Turkish | 46 | 98% |
-| Simple adds | 20 | 100% |
-| Relative dates ("in 2 weeks", "öbür gün") | 22 | 95% |
+| English | 58 | 98% |
+| Turkish | 46 | 96% |
+| Simple adds | 20 | 95% |
+| Relative dates ("in 2 weeks", "öbür gün") | 22 | 100% |
 | Moves & edits | 18 | 94% |
 | Cancels | 11 | 91% |
 | Reminders | 10 | 100% |
@@ -58,7 +59,7 @@ The app is **Tauri 2** (a Rust backend with a React UI) rather than Electron, be
 | Questions | 9 | 100% |
 | Unclear (should ask back) | 6 | 100% |
 
-Median response time: **2.1 s** (claude-haiku-4-5, temperature 0). Full report with every failure: [tests/results.md](tests/results.md).
+Median response time: **2.5 s** (claude-haiku-4-5, temperature 0). Full report with every failure: [tests/results.md](tests/results.md).
 
 **Before vs after.** The first run scored **90%** ([baseline](tests/results-baseline.md)). The fixes were general, not tuned to individual sentences: give the model a 14-day calendar with weekday names (it had listed Friday's events for "Tuesday"), stricter rules on when to act versus ask, and a few Turkish date words. Because the same set guided those fixes, treat 97% as optimistic for brand-new phrasings.
 
@@ -99,8 +100,8 @@ Then open **Settings → Elise's mind**, paste your API key and press **Save**. 
 
 ## Limitations and next steps
 
-- **Over-cautious sometimes.** All three test failures are Elise asking a question when she could have acted (for example "Cancel tomorrow's meeting" when there's also a dentist appointment tomorrow). That's the safer way to be wrong, but it's still friction.
-- **Voice is English-only.** Typed Turkish scores 98%, but the speech model is `base.en`. Next: switch to the multilingual Whisper model and add Turkish wake phrases.
+- **Over-cautious sometimes.** Two of the three test failures are Elise asking a question when she could have acted (for example "Cancel tomorrow's meeting" when there's also a dentist appointment tomorrow). That's the safer way to be wrong, but it's still friction. The third put "the 9th of this month" in the wrong month.
+- **Voice is English-only.** Typed Turkish scores 96%, but the speech model is `base.en`. Next: switch to the multilingual Whisper model and add Turkish wake phrases.
 - **The wake word was tested on synthetic clips**, not a broad set of real voices and rooms. Next: record real samples and tune the thresholds.
 - **The accuracy test is single-turn.** It doesn't play through clarification follow-ups, and the set was also used to guide the prompt changes.
 - **Windows-only**, and the overlay can't draw over exclusive-fullscreen games (borderless is fine).

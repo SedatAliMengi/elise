@@ -2,11 +2,13 @@ import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api, newSessionId, on } from "../lib/api";
 import { speak, stopSpeaking } from "../lib/speech";
+import { plainText } from "../lib/text";
 import type { CommandResult, EyeState, Settings, VoiceEvent } from "../lib/types";
 import { useVoiceStatus, voiceOpts } from "../lib/useSettings";
 import "./CommandPanel.css";
 
-type Phase = "input" | "thinking" | "done" | "answer" | "clarify" | "error" | "undone";
+// "more": a command finished and Elise asked "Anything else?" (still listening).
+type Phase = "input" | "thinking" | "done" | "answer" | "clarify" | "error" | "undone" | "more";
 type Mic = "off" | "listening" | "transcribing";
 
 interface Props {
@@ -26,7 +28,8 @@ interface Props {
 }
 
 /** Ways to send Elise away by voice or text. Handled locally, no API call. */
-const DISMISS = /^(?:ok(?:ay)?[, ]+)?(?:go away|bye|goodbye|good bye|dismiss(?:ed)?|never ?mind|that'?s (?:all|it)|thanks?(?: you)?(?:,? that'?s all)?|leave|you can go|close|cancel|stop|nothing)[.!]*$/i;
+const DISMISS =
+  /^(?:ok(?:ay)?[, ]+)?(?:go away|bye|goodbye|good bye|dismiss(?:ed)?|never ?mind|that'?s (?:all|it)|thanks?(?: you)?(?:,? that'?s all)?|leave|you can go|close|cancel|stop|nothing(?: else)?|(?:no|nope|nah)(?:[, ]+(?:thanks?|thank you|that'?s (?:all|it)|i'?m good|nothing else))?|i'?m good|all good|hayır(?:[, ]+teşekkürler)?|yok(?:[, ]+teşekkürler)?|teşekkürler|bu kadar|gerek yok)[.!]*$/i;
 
 export default function CommandPanel({ settings, greet = true, placement, onEyeState, onLevel, onFinish, voiceSummoned, direct }: Props) {
   const greeting = `Hello ${settings.userName || "Enigma"}, what is your command?`;
@@ -153,7 +156,9 @@ export default function CommandPanel({ settings, greet = true, placement, onEyeS
             onLevel?.(0);
             const heard = (e.text ?? "").trim();
             if (heard) submit(heard);
-            else if (!voiceMode.current) {
+            else if (phaseRef.current === "more" && !inputRef.current?.value.trim()) {
+              finish(); // no answer to "Anything else?"
+            } else if (!voiceMode.current) {
               // Nobody spoke (maybe they're about to type): stop quietly.
               onEyeState("listening");
               inputRef.current?.focus();
@@ -179,39 +184,72 @@ export default function CommandPanel({ settings, greet = true, placement, onEyeS
     [],
   );
 
+  /** After a command: ask "Anything else?" and keep listening (Settings → follow-up). */
+  const askMore = async (spokenFirst: string | null) => {
+    const vo = voiceOpts(settingsRef.current);
+    setPhase("more");
+    session.current = newSessionId(); // the next command starts a fresh conversation
+    onEyeState("speaking");
+    if (spokenFirst) await speak(spokenFirst, vo);
+    await speak("Anything else?", vo);
+    if (finished.current) return;
+    onEyeState("listening");
+    const typing = !!inputRef.current?.value.trim();
+    if (voiceRef.current.available && !typing) startMic();
+    else inputRef.current?.focus();
+  };
+
   const handleResult = async (r: CommandResult) => {
+    const message = plainText(r.message);
+    const followUp = settingsRef.current.followUp !== false;
     setSummary(r.summary);
     setHistoryId(r.historyId);
-    setBubble(r.message);
     const vo = voiceOpts(settingsRef.current);
     switch (r.kind) {
       case "done":
+        if (followUp) {
+          setBubble("Understood. Anything else?");
+          setPhase("more");
+          onEyeState("speaking");
+          await speak("Understood. Anything else?", vo);
+          await askMore(null).catch(() => {});
+          break;
+        }
+        setBubble(message);
         setPhase("done");
         onEyeState("speaking");
-        await speak(r.message, vo);
+        await speak(message, vo);
         onEyeState("idle");
         closeAfter(2600 + r.summary.length * 600);
         break;
       case "answer":
+        if (followUp) {
+          setBubble(`${message} Anything else?`);
+          await askMore(message);
+          break;
+        }
+        setBubble(message);
         setPhase("answer");
         onEyeState("speaking");
-        await speak(r.message, vo);
+        await speak(message, vo);
         onEyeState("idle");
-        closeAfter(3500 + r.message.length * 45);
+        closeAfter(3500 + message.length * 45);
         break;
       case "clarify":
+        setBubble(message);
         setPhase("clarify");
         onEyeState("speaking");
-        await speak(r.message, vo);
+        await speak(message, vo);
         onEyeState("listening");
         if (voiceMode.current && voice.available) startMic();
         else inputRef.current?.focus();
         bumpIdle();
         break;
       case "error":
+        setBubble(message);
         setPhase("error");
         onEyeState("error");
-        await speak(r.message, vo);
+        await speak(message, vo);
         window.setTimeout(() => onEyeState("listening"), 700);
         inputRef.current?.focus();
         bumpIdle();
@@ -274,11 +312,9 @@ export default function CommandPanel({ settings, greet = true, placement, onEyeS
     if (mic === "off") {
       voiceMode.current = true;
       startMic();
-    } else {
-      voiceMode.current = false;
-      stopMic();
-      onEyeState("listening");
-      inputRef.current?.focus();
+    } else if (mic === "listening") {
+      // "I'm done talking": process what was said so far.
+      api.voiceFinish().catch(() => {});
     }
   };
 
@@ -294,6 +330,7 @@ export default function CommandPanel({ settings, greet = true, placement, onEyeS
 
   phaseRef.current = phase;
   const showInput = phase !== "done" && phase !== "undone" && phase !== "answer";
+  const showUndo = (phase === "done" || phase === "more") && !!historyId;
   const echo = phase === "thinking";
   const placeholder =
     mic === "listening" ? "Listening…" : mic === "transcribing" ? "Understanding what you said…" : phase === "clarify" ? "Your answer…" : "Type a command…";
@@ -339,7 +376,7 @@ export default function CommandPanel({ settings, greet = true, placement, onEyeS
             ))}
           </motion.ul>
         )}
-        {phase === "done" && historyId && (
+        {showUndo && (
           <div className="cmd__actions">
             <button className="btn ghost cmd__undo" onClick={undo}>
               ↶ Undo
@@ -371,7 +408,7 @@ export default function CommandPanel({ settings, greet = true, placement, onEyeS
               className={`btn icon cmd__mic ${mic !== "off" ? "on" : ""}`}
               onClick={toggleMic}
               disabled={phase === "thinking" || mic === "transcribing"}
-              title={mic === "off" ? "Speak" : "Stop listening"}
+              title={mic === "off" ? "Speak" : "Done talking: send it now"}
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <rect x="9" y="3" width="6" height="11" rx="3" />

@@ -188,6 +188,12 @@ export default function SettingsPanel({ settings, onClose }: Props) {
           <section>
             <h4>Voice</h4>
             <Toggle label="Voice responses" hint="Elise speaks her replies and reminders" on={settings.voiceResponses} onChange={(v) => update({ voiceResponses: v })} />
+            <Toggle
+              label='Ask "Anything else?"'
+              hint={`After each command she keeps listening; say "no" or "that's all" to send her away`}
+              on={settings.followUp}
+              onChange={(v) => update({ followUp: v })}
+            />
             {settings.voiceResponses && (
               <>
                 <div className="set-row">

@@ -64,6 +64,33 @@ PROMPT = (
 )
 
 _out_lock = threading.Lock()
+
+# While Elise speaks (plus a short tail for room echo) the microphone input is
+# ignored: her own voice from the speakers must never wake her or become a command.
+_speaking_until = 0.0
+SPEAK_TAIL_S = 0.6
+
+# End-of-speech detection. People pause mid-sentence, so only a clear stretch of
+# silence ends a command; the mic button ("I'm done") ends it immediately.
+SILENCE_END_S = 2.5
+MAX_COMMAND_S = 30
+NO_SPEECH_TIMEOUT_S = 8
+
+
+def speaking() -> bool:
+    return time.time() < _speaking_until
+
+
+def plain_text(text: str) -> str:
+    """Remove markdown and symbols that a voice would read out ("asterisk")."""
+    t = re.sub(r"^\s*(?:[-*+•]|\d+[.)])\s+", "", text, flags=re.M)  # list bullets
+    t = re.sub(r"[*_#`~>|]+", "", t)                                 # emphasis, headings, code
+    t = re.sub(r"(\d)\s*[-–—]\s*(\d)", r"\1 to \2", t)                # 15:00 - 16:00 -> "to"
+    t = re.sub(r"\s+[-–—]\s+", ", ", t)                              # " - " used as a pause
+    t = re.sub(r"\s*\n+\s*", ". ", t)                                # line breaks
+    t = re.sub(r"([:;,])\s*\.", r"\1", t)
+    t = re.sub(r"\.\s*\.", ".", t)
+    return re.sub(r"\s{2,}", " ", t).strip()
 _log_file = None  # set in main(): <app data>/voice.log
 
 
@@ -252,6 +279,23 @@ class Voice:
         threading.Thread(target=self.ensure_whisper, daemon=True).start()
         emit(evt="listening")
 
+    def finish(self):
+        """The user says they're done: transcribe what we have right now."""
+        with self.lock:
+            if self.mode != "record":
+                return
+            buf, self.rec_buf = self.rec_buf, []
+            heard = self.speech_started
+            self.mode = "transcribing" if heard and buf else ("wake" if self.wake_on else "idle")
+        emit(evt="level", v=0)
+        log("finish requested; speech heard:", heard)
+        if heard and buf:
+            threading.Thread(target=self.transcribe, args=(np.concatenate(buf),), daemon=True).start()
+        else:
+            with self.lock:
+                self.sync_stream()
+            emit(evt="final", text="")
+
     def cancel(self):
         with self.lock:
             self.mode = "wake" if self.wake_on else "idle"
@@ -264,6 +308,13 @@ class Voice:
 
     def on_block(self, block: np.ndarray):
         mode = self.mode
+        if speaking():
+            # Drop Elise's own voice; forget anything the wake word heard of it.
+            if self.recent:
+                self.recent = []
+                if self.rec is not None:
+                    self.rec.Reset()
+            return
         if mode == "wake" and self.rec is not None:
             self.recent.append(block)
             keep = int(WAKE_WINDOW_S * SR / BLOCK) + 4
@@ -343,17 +394,20 @@ class Voice:
         self.rec_buf.append(block)
         rms = float(np.sqrt(np.mean(block.astype(np.float32) ** 2)))
         if self.noise_floor is None:
-            self.noise_floor = rms
+            self.noise_floor = min(rms, 400.0)
         elif not self.speech_started:
             self.noise_floor = 0.9 * self.noise_floor + 0.1 * min(rms, self.noise_floor * 2)
-        thr = max(self.noise_floor * 2.8, 420.0)
+        # Start needs clear speech; once talking, quieter syllables still count
+        # as speech (hysteresis), so soft voices aren't cut mid-sentence.
+        thr = max(self.noise_floor * 2.2, 260.0)
+        thr_off = max(self.noise_floor * 1.5, 180.0)
 
         level = min(1.0, rms / 4000.0)
         if abs(level - self.last_level) > 0.02:
             self.last_level = level
             emit(evt="level", v=round(level, 3))
 
-        if rms > thr:
+        if rms > (thr_off if self.speech_started else thr):
             self.loud_blocks += 1
             self.silence_blocks = 0
             if self.loud_blocks >= 2:
@@ -365,9 +419,12 @@ class Voice:
         elapsed = time.time() - self.rec_started
         if self.speech_started and self.loud_blocks == 2:
             log(f"speech started (rms {rms:.0f}, threshold {thr:.0f})")
-        done = (self.speech_started and self.silence_blocks >= 12) or elapsed > 15
-        if not self.speech_started and elapsed > 7:
-            log(f"no speech heard in 7s (last rms {rms:.0f}, threshold {thr:.0f}, noise floor {self.noise_floor:.0f})")
+        silence_end = int(SILENCE_END_S * SR / BLOCK)
+        done = (self.speech_started and self.silence_blocks >= silence_end) or elapsed > MAX_COMMAND_S
+        if done:
+            log(f"recording ended after {elapsed:.1f}s ({'silence' if elapsed <= MAX_COMMAND_S else 'max length'})")
+        if not self.speech_started and elapsed > NO_SPEECH_TIMEOUT_S:
+            log(f"no speech heard in {NO_SPEECH_TIMEOUT_S}s (last rms {rms:.0f}, threshold {thr:.0f}, noise floor {self.noise_floor:.0f})")
             with self.lock:
                 self.mode = "wake" if self.wake_on else "idle"
                 self.sync_stream()
@@ -482,7 +539,7 @@ class Speaker:
             log("prewarm failed:", e)
 
     def speak(self, job_id: int, text: str, speed: float):
-        self.jobs.put((job_id, text, speed))
+        self.jobs.put((job_id, plain_text(text), speed))
 
     def stop(self):
         self.stop_flag.set()
@@ -511,8 +568,13 @@ class Speaker:
                     audio = self.render(part, speed)
                     if self.stop_flag.is_set():
                         break
-                    sd.play(audio, self.sr)
-                    sd.wait()
+                    global _speaking_until
+                    _speaking_until = float("inf")
+                    try:
+                        sd.play(audio, self.sr)
+                        sd.wait()
+                    finally:
+                        _speaking_until = time.time() + SPEAK_TAIL_S
             except Exception as e:  # noqa: BLE001
                 log("speak failed:", e)
             emit(evt="spoken", id=job_id)
@@ -541,6 +603,8 @@ def stdin_reader(v: Voice, spk: Speaker):
             v.listen()
         elif cmd == "cancel":
             v.cancel()
+        elif cmd == "finish":
+            v.finish()
         elif cmd == "preload":
             threading.Thread(target=v.ensure_whisper, daemon=True).start()
         elif cmd == "speak":

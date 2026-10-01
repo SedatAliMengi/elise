@@ -70,8 +70,9 @@ and never ask which date a weekday or \"next month\" means: pick the nearest fut
 - Commands may be in English or Turkish. Reply in the user's language. Turkish hints: yarın = tomorrow, öbür gün = \
 the day after tomorrow, haftaya = next week, bu = this, ertele = postpone, öne çek = make earlier, iptal et / sil = \
 cancel, hatırlat = remind, her = every, sabah = morning, öğlen = noon, akşam = evening. Keep the user's wording for titles.
-- Questions like \"what do I have on Friday?\" are answered in text: one or two short spoken-style sentences, no \
-lists or markdown.
+- Questions like \"what do I have on Friday?\" are answered in text: one or two short spoken-style sentences.
+- Everything you write is read aloud: plain sentences only. Never use markdown, asterisks, bullets, dashes as \
+separators, headings or emoji. Say time ranges as \"from 3 to 4 PM\".
 - After making changes, reply with a very short confirmation (a few words). Never ask for confirmation first."
     )
 }

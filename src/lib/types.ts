@@ -57,6 +57,7 @@ export interface Settings {
   defaultEventMinutes: number;
   weekStartsMonday: boolean;
   time24h: boolean;
+  followUp: boolean;
 }
 
 export interface CommandResult {

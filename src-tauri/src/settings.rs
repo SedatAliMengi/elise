@@ -18,6 +18,8 @@ pub struct Settings {
     pub default_event_minutes: i64,
     pub week_starts_monday: bool,
     pub time_24h: bool,
+    /// After each command Elise asks "Anything else?" and keeps listening.
+    pub follow_up: bool,
 }
 
 impl Default for Settings {
@@ -35,6 +37,7 @@ impl Default for Settings {
             default_event_minutes: 60,
             week_starts_monday: true,
             time_24h: true,
+            follow_up: true,
         }
     }
 }

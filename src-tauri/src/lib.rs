@@ -321,6 +321,11 @@ fn voice_listen(app: AppHandle, window: tauri::Window) {
 }
 
 #[tauri::command]
+fn voice_finish(app: AppHandle) {
+    voice::finish(&app);
+}
+
+#[tauri::command]
 fn voice_cancel(app: AppHandle) {
     voice::cancel(&app);
 }
@@ -491,6 +496,7 @@ pub fn run() {
             reminder_toast,
             voice_listen,
             voice_cancel,
+            voice_finish,
             voice_status,
             voice_speak,
             voice_stop_speaking,

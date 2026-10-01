@@ -164,6 +164,11 @@ pub fn listen(app: &AppHandle, owner: &str) {
     send(app, json!({"cmd": "listen"}));
 }
 
+/// The user is done talking: transcribe what was recorded so far.
+pub fn finish(app: &AppHandle) {
+    send(app, json!({"cmd": "finish"}));
+}
+
 pub fn cancel(app: &AppHandle) {
     send(app, json!({"cmd": "cancel"}));
 }
@@ -187,6 +192,8 @@ pub fn prewarm(app: &AppHandle) {
         "Understood.".to_string(),
         "Undone.".to_string(),
         "As you wish.".to_string(),
+        "Understood. Anything else?".to_string(),
+        "Anything else?".to_string(),
         "I didn't hear anything. Say it again, or type it.".to_string(),
     ];
     send(app, json!({"cmd": "prewarm", "texts": texts, "speed": speed(app)}));

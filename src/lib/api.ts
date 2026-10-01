@@ -43,6 +43,7 @@ export const api = {
   reminderToast: (title: string, body: string) => invoke<void>("reminder_toast", { title, body }),
   voiceListen: () => invoke<void>("voice_listen"),
   voiceCancel: () => invoke<void>("voice_cancel"),
+  voiceFinish: () => invoke<void>("voice_finish"),
   voiceStatus: () => invoke<VoiceStatus>("voice_status"),
   showCalendar: (settings = false) => invoke<void>("show_calendar", { settings }),
   stageSet: (on: boolean) => invoke<void>("stage_set", { on }),

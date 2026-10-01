@@ -15,6 +15,7 @@ export const DEFAULT_SETTINGS: Settings = {
   defaultEventMinutes: 60,
   weekStartsMonday: true,
   time24h: true,
+  followUp: true,
 };
 
 /** Live settings, updated whenever any window changes them. */
