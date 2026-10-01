@@ -372,7 +372,33 @@ fn quit(app: AppHandle) {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // Open the calendar and settings *before* any window exists: config windows
+    // are created before `setup`, and a fast page load could otherwise call a
+    // command before its state is managed ("state not managed" error).
+    // Same folder as Tauri's app_data_dir() for this identifier.
+    let data_dir = std::env::var_os("APPDATA")
+        .map(PathBuf::from)
+        .unwrap_or_else(std::env::temp_dir)
+        .join("com.enigma.elise");
+    let _ = std::fs::create_dir_all(&data_dir);
+    let db = Db::open(&data_dir.join("elise.db")).expect("couldn't open Elise's calendar database");
+    let settings = settings::load(&data_dir);
+
     tauri::Builder::default()
+        .manage(AppState {
+            db: Mutex::new(db),
+            settings: Mutex::new(settings),
+            data_dir,
+            sched: Mutex::new(None),
+            overlay_mode: Mutex::new(Mode::Hidden),
+            pending_reminders: Mutex::new(vec![]),
+            tray: Mutex::new(None),
+            sessions: Mutex::new(HashMap::new()),
+            move_counter: AtomicU64::new(0),
+            ignore_moves: AtomicBool::new(false),
+            stage_on: AtomicBool::new(false),
+        })
+        .manage(voice::Voice::default())
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| show_main(app, false)))
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
@@ -396,26 +422,7 @@ pub fn run() {
         )
         .setup(|app| {
             let handle = app.handle().clone();
-            let data_dir = app.path().app_data_dir()?;
-            std::fs::create_dir_all(&data_dir)?;
-            let db = Db::open(&data_dir.join("elise.db")).map_err(|e| e.to_string())?;
-            let settings = settings::load(&data_dir);
-
-            app.manage(AppState {
-                db: Mutex::new(db),
-                settings: Mutex::new(settings.clone()),
-                data_dir,
-                sched: Mutex::new(None),
-                overlay_mode: Mutex::new(Mode::Hidden),
-                pending_reminders: Mutex::new(vec![]),
-                tray: Mutex::new(None),
-                sessions: Mutex::new(HashMap::new()),
-                move_counter: AtomicU64::new(0),
-                ignore_moves: AtomicBool::new(false),
-                stage_on: AtomicBool::new(false),
-            });
-
-            app.manage(voice::Voice::default());
+            let settings = app.state::<AppState>().settings.lock().unwrap().clone();
             voice::start(&handle);
 
             let checks = tray::build(&handle)?;
