@@ -64,16 +64,26 @@ PROMPT = (
 )
 
 _out_lock = threading.Lock()
+_log_file = None  # set in main(): <app data>/voice.log
 
 
 def emit(**kw) -> None:
     with _out_lock:
         sys.stdout.write(json.dumps(kw) + "\n")
         sys.stdout.flush()
+    if kw.get("evt") != "level":
+        log("->", json.dumps(kw))
 
 
 def log(*a) -> None:
-    print("[voice]", *a, file=sys.stderr, flush=True)
+    line = time.strftime("%Y-%m-%d %H:%M:%S ") + " ".join(str(x) for x in a)
+    print("[voice]", line, file=sys.stderr, flush=True)
+    if _log_file:
+        try:
+            with open(_log_file, "a", encoding="utf-8") as f:
+                f.write(line + "\n")
+        except OSError:
+            pass
 
 
 class Voice:
@@ -140,6 +150,8 @@ class Voice:
             if self.whisper is None:
                 from faster_whisper import WhisperModel
 
+                log("loading whisper from", os.path.join(self.models_dir, "whisper"))
+
                 emit(evt="status", msg="Loading speech model…")
                 self.whisper = WhisperModel(
                     WHISPER_NAME,
@@ -177,6 +189,10 @@ class Voice:
             sd._initialize()
             self.stream = sd.InputStream(samplerate=SR, channels=1, dtype="int16", blocksize=BLOCK, callback=self._callback)
             self.stream.start()
+            try:
+                log("mic opened:", sd.query_devices(kind="input")["name"])
+            except Exception:  # noqa: BLE001
+                pass
             return True
         except Exception as e:  # noqa: BLE001
             self.stream = None
@@ -216,6 +232,7 @@ class Voice:
             self.sync_stream()
 
     def listen(self):
+        log("listen requested")
         with self.lock:
             self.mode = "record"
             self.rec_buf = []
@@ -313,8 +330,11 @@ class Voice:
             self.silence_blocks += 1
 
         elapsed = time.time() - self.rec_started
+        if self.speech_started and self.loud_blocks == 2:
+            log(f"speech started (rms {rms:.0f}, threshold {thr:.0f})")
         done = (self.speech_started and self.silence_blocks >= 12) or elapsed > 15
         if not self.speech_started and elapsed > 7:
+            log(f"no speech heard in 7s (last rms {rms:.0f}, threshold {thr:.0f}, noise floor {self.noise_floor:.0f})")
             with self.lock:
                 self.mode = "wake" if self.wake_on else "idle"
                 self.sync_stream()
@@ -506,6 +526,14 @@ def main():
         sys.stdout.reconfigure(encoding="utf-8")  # type: ignore[attr-defined]
     except Exception:  # noqa: BLE001
         pass
+    global _log_file
+    _log_file = os.path.join(os.path.dirname(os.path.abspath(args.models)), "voice.log")
+    try:  # keep the log small
+        if os.path.getsize(_log_file) > 512_000:
+            os.remove(_log_file)
+    except OSError:
+        pass
+    log("voice engine starting, models in", args.models)
     v = Voice(args.models)
     spk = Speaker(args.models)
     v.speaker = spk

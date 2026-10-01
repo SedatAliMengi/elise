@@ -10,7 +10,6 @@ import {
   startOfDay,
   startOfYear,
 } from "date-fns";
-import { getCurrentWindow } from "@tauri-apps/api/window";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api, on } from "../lib/api";
@@ -49,24 +48,16 @@ export default function CalendarApp() {
   const [scopeReq, setScopeReq] = useState<ScopeReq | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
-  // Hidden to the tray (or minimized): render nothing so nothing animates.
-  const [shown, setShown] = useState(true);
-  const [minimized, setMinimized] = useState(false);
-  useEffect(() => {
-    // document.hidden is unreliable in WebView2 (stays true after a hidden start),
-    // so trust the backend's show/hide events and Tauri's minimized state.
-    api.isCalendarVisible().then(setShown).catch(() => {});
-    const off = on<boolean>("main-visible", (v) => {
-      setShown(v);
-      if (v) setVersion((x) => x + 1); // catch up on anything changed while suspended
-    });
-    const win = getCurrentWindow();
-    const un = win.onResized(() => win.isMinimized().then(setMinimized));
-    return () => {
-      off();
-      un.then((f) => f());
-    };
-  }, []);
+  // Always render. A hidden calendar is suspended by WebView2 (see webview.rs),
+  // which already stops all work; unmounting here could leave a blank window
+  // if the "visible" event raced the page load.
+  useEffect(
+    () =>
+      on<boolean>("main-visible", (v) => {
+        if (v) setVersion((x) => x + 1); // catch up on anything changed while suspended
+      }),
+    [],
+  );
 
   // ----- visible range -----
   const { from, to, days } = useMemo(() => {
@@ -284,7 +275,6 @@ export default function CalendarApp() {
   });
 
   const viewKey = `${view}-${toNaive(from)}`;
-  if (!shown || minimized) return <div className="app" />;
   const showAgenda = view === "month" || view === "year";
 
   return (
