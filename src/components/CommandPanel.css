@@ -49,7 +49,23 @@
   position: relative;
 }
 
+.cmd__close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  font-size: 11px;
+  color: var(--text-faint);
+  transition: color 0.15s, background 0.15s;
+}
+.cmd__close:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.08);
+}
 .cmd__text {
+  padding-right: 18px;
   font-size: 15px;
   font-weight: 500;
   color: var(--text);

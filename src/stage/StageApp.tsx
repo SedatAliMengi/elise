@@ -12,6 +12,7 @@ import "./stage.css";
 interface Session {
   key: number;
   voice: boolean;
+  direct: boolean;
 }
 
 /** "Big eye on screen": Elise fills the main monitor. Vector art, so it stays sharp at any size. */
@@ -35,9 +36,9 @@ export default function StageApp() {
     ritualTimer.current = window.setTimeout(() => setRitual("off"), ms);
   }, []);
 
-  const startSession = useCallback((voice: boolean) => {
+  const startSession = useCallback((voice: boolean, direct = false) => {
     keyRef.current += 1;
-    setSession({ key: keyRef.current, voice });
+    setSession({ key: keyRef.current, voice, direct });
   }, []);
 
   useEffect(() => {
@@ -56,7 +57,7 @@ export default function StageApp() {
           setEye("closed");
         }
       }),
-      on<string>("summon", (source) => startSession(source === "voice")),
+      on<string>("summon", (source) => startSession(source.startsWith("voice"), source === "voice-direct")),
     ];
     const onResize = () => setVp({ w: window.innerWidth, h: window.innerHeight });
     window.addEventListener("resize", onResize);
@@ -127,6 +128,7 @@ export default function StageApp() {
               settings={settings}
               placement="calendar"
               voiceSummoned={session.voice}
+              direct={session.direct}
               onEyeState={(s) => setEye(s === "appearing" ? "listening" : s)}
               onLevel={setLevel}
               onFinish={() => {

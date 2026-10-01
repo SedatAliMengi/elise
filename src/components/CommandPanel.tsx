@@ -21,11 +21,14 @@ interface Props {
   onFinish: () => void;
   /** Summoned by "Hey Elise": keep the whole conversation hands-free. */
   voiceSummoned?: boolean;
+  /** "Elise, <command>" in one breath: no greeting, the engine is already recording. */
+  direct?: boolean;
 }
 
-const INACTIVITY_MS = 20_000;
+/** Ways to send Elise away by voice or text. Handled locally, no API call. */
+const DISMISS = /^(?:ok(?:ay)?[, ]+)?(?:go away|bye|goodbye|good bye|dismiss(?:ed)?|never ?mind|that'?s (?:all|it)|thanks?(?: you)?(?:,? that'?s all)?|leave|you can go|close|cancel|stop|nothing)[.!]*$/i;
 
-export default function CommandPanel({ settings, greet = true, placement, onEyeState, onLevel, onFinish, voiceSummoned }: Props) {
+export default function CommandPanel({ settings, greet = true, placement, onEyeState, onLevel, onFinish, voiceSummoned, direct }: Props) {
   const greeting = `Hello ${settings.userName || "Enigma"}, what is your command?`;
   const voice = useVoiceStatus();
   const voiceRef = useRef(voice);
@@ -46,7 +49,7 @@ export default function CommandPanel({ settings, greet = true, placement, onEyeS
   const micRef = useRef<Mic>("off");
   micRef.current = mic;
   /** The conversation is being held by voice: keep listening after questions. */
-  const voiceMode = useRef(!!voiceSummoned);
+  const voiceMode = useRef(!!voiceSummoned || !!direct);
   const settingsRef = useRef(settings);
   settingsRef.current = settings;
 
@@ -81,13 +84,9 @@ export default function CommandPanel({ settings, greet = true, placement, onEyeS
     [finish],
   );
 
-  const bumpIdle = useCallback(() => {
-    clearTimeout(idleTimer.current);
-    idleTimer.current = window.setTimeout(() => {
-      if (!hovered.current && micRef.current === "off") finish();
-      else bumpIdle();
-    }, INACTIVITY_MS);
-  }, [finish]);
+  // No inactivity countdown: Elise stays until she's sent away (✕, Esc, or
+  // "go away") or a command finishes. Kept as a no-op hook for callers.
+  const bumpIdle = useCallback(() => {}, []);
 
   const startMic = useCallback(() => {
     if (finished.current) return;
@@ -105,6 +104,14 @@ export default function CommandPanel({ settings, greet = true, placement, onEyeS
 
   // Greeting (and, when summoned by voice, listen right after it).
   useEffect(() => {
+    if (direct) {
+      // The command is already being recorded: just show that she's listening.
+      setBubble("Listening…");
+      micRef.current = "listening";
+      setMic("listening");
+      onEyeState("listening");
+      return;
+    }
     onEyeState(greet ? "appearing" : "idle");
     const t = window.setTimeout(() => onEyeState("listening"), greet ? 550 : 0);
     const spoken = greet ? speak(greeting, voiceOpts(settingsRef.current)) : Promise.resolve();
@@ -215,6 +222,17 @@ export default function CommandPanel({ settings, greet = true, placement, onEyeS
   async function submit(raw?: string) {
     const t = (raw ?? text).trim();
     if (!t || phase === "thinking") return;
+    if (DISMISS.test(t)) {
+      stopMic();
+      setText("");
+      setSummary([]);
+      setPhase("undone");
+      setBubble("As you wish.");
+      onEyeState("speaking");
+      await speak("As you wish.", voiceOpts(settingsRef.current));
+      closeAfter(400);
+      return;
+    }
     if (raw === undefined) {
       voiceMode.current = false; // typed: don't auto-listen afterwards
       stopMic();
@@ -292,6 +310,9 @@ export default function CommandPanel({ settings, greet = true, placement, onEyeS
       onKeyDown={onKey}
     >
       <div className="cmd__bubble">
+        <button className="cmd__close" onClick={finish} title="Send Elise away (Esc)" aria-label="Close">
+          ✕
+        </button>
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={bubble + phase}

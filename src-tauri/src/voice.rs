@@ -136,7 +136,9 @@ fn handle(app: &AppHandle, msg: Value) {
         "wake" => {
             let owner = if crate::stage::is_on(app) { crate::stage::LABEL } else { crate::overlay::LABEL };
             *app.state::<Voice>().owner.lock().unwrap() = owner.to_string();
-            crate::overlay::summon(app, "voice");
+            // direct: "Elise, <command>" in one breath; the engine is already recording it.
+            let direct = msg.get("direct").and_then(Value::as_bool).unwrap_or(false);
+            crate::overlay::summon(app, if direct { "voice-direct" } else { "voice" });
         }
         _ => {
             let owner = app.state::<Voice>().owner.lock().unwrap().clone();
@@ -184,6 +186,7 @@ pub fn prewarm(app: &AppHandle) {
         format!("Hello {name}, what is your command?"),
         "Understood.".to_string(),
         "Undone.".to_string(),
+        "As you wish.".to_string(),
         "I didn't hear anything. Say it again, or type it.".to_string(),
     ];
     send(app, json!({"cmd": "prewarm", "texts": texts, "speed": speed(app)}));

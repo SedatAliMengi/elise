@@ -114,7 +114,7 @@ pub fn summon(app: &AppHandle, source: &str) {
         return;
     }
     set_mode(app, Mode::Expanded);
-    if source != "voice" {
+    if !source.starts_with("voice") {
         if let Some(w) = win(app) {
             let _ = w.set_focus();
         }

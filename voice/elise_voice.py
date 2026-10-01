@@ -52,11 +52,11 @@ TTS_IDLE_UNLOAD_S = 300
 # Stage 1 (cheap, always on): Vosk in grammar mode spots these phrases.
 # Anything else falls into "[unk]". Adding look-alike names here makes the
 # grammar grab ordinary speech, so keep it tight.
-WAKE_PHRASES = ["hey elise", "okay elise", "hi elise"]
+WAKE_PHRASES = ["hey elise", "okay elise", "hi elise", "elise"]
 # Stage 2 (only after stage 1 fires): Whisper re-listens to the last few
 # seconds and must hear the name. This rejects look-alikes like "hey, at least".
 NAME_RE = re.compile(r"\b(elise|elyse|elise's|eliza|alise|elice|ellis)\b", re.I)
-WAKE_WINDOW_S = 2.5
+WAKE_WINDOW_S = 6.0  # long enough for "Elise, <whole command>" in one breath
 
 PROMPT = (
     "Hey Elise, add a doctor appointment on July 5th at 10pm and remind me two days before. "
@@ -104,6 +104,8 @@ class Voice:
         self.whisper_lock = threading.Lock()
 
         self.recent: list[np.ndarray] = []  # last few seconds while wake listening
+        self.verify_buf: list[np.ndarray] = []  # audio that arrives while verifying
+        self.strip_name = False  # one-breath command: drop "Elise," from the transcript
         self.rec_buf: list[np.ndarray] = []
         self.rec_started = 0.0
         self.speech_started = False
@@ -276,7 +278,11 @@ class Voice:
                     self.recent = []
                     with self.lock:
                         self.mode = "verifying"
+                        self.verify_buf = []
                     threading.Thread(target=self.verify_wake, args=(clip,), daemon=True).start()
+        elif mode == "verifying":
+            # Keep listening while Whisper checks: the user may still be talking.
+            self.verify_buf.append(block)
         elif mode == "armed":
             if time.time() > self.armed_until:
                 self.cancel()
@@ -287,24 +293,51 @@ class Voice:
         heard = ""
         try:
             model = self.ensure_whisper()
-            segs, _ = model.transcribe(clip.astype(np.float32) / 32768.0, language="en", beam_size=1, condition_on_previous_text=False)
+            # Tell Whisper "Elise" is a name to expect (it otherwise hears "Police").
+            segs, _ = model.transcribe(
+                clip.astype(np.float32) / 32768.0,
+                language="en",
+                beam_size=1,
+                condition_on_previous_text=False,
+                initial_prompt="Elise is my assistant.",
+            )
             heard = " ".join(s.text.strip() for s in segs)
         except Exception as e:  # noqa: BLE001
             log("verify failed:", e)
-        ok = bool(NAME_RE.search(heard))
-        log("verify:", repr(heard), "->", ok)
+        m = NAME_RE.search(heard)
+        ok = bool(m)
+        # "Elise, add a meeting tomorrow" in one breath: the rest is the command.
+        rest = heard[m.end():].strip(" ,.!?;:-") if m else ""
+        if len(rest.split()) < 2:
+            rest = ""
+        log("verify:", repr(heard), "->", ok, "| command:", repr(rest))
         with self.lock:
             if self.mode != "verifying":
                 return
             if self.rec is not None:
                 self.rec.Reset()
-            if ok:
+            if ok and rest:
+                # "Elise, add a meeting tomorrow": keep recording until they stop
+                # talking, then transcribe the whole sentence as the command.
+                self.mode = "record"
+                self.rec_buf = [clip] + self.verify_buf
+                self.rec_started = time.time()
+                self.speech_started = True
+                self.silence_blocks = 0
+                self.loud_blocks = 0
+                # Room noise = the quietest moments of what we already heard.
+                n = len(clip) // BLOCK
+                levels = np.sqrt(np.mean(clip[: n * BLOCK].reshape(n, BLOCK).astype(np.float32) ** 2, axis=1)) if n else np.array([300.0])
+                self.noise_floor = float(np.percentile(levels, 10))
+                self.strip_name = True
+            elif ok:
                 self.mode = "armed"
                 self.armed_until = time.time() + 12
             else:
                 self.mode = "wake" if self.wake_on else "idle"
+            self.verify_buf = []
         if ok:
-            emit(evt="wake")
+            emit(evt="wake", direct=bool(rest))
 
     def record_block(self, block: np.ndarray):
         self.rec_buf.append(block)
@@ -356,6 +389,11 @@ class Voice:
             f32 = audio.astype(np.float32) / 32768.0
             segments, _ = model.transcribe(f32, language="en", beam_size=1, initial_prompt=PROMPT, condition_on_previous_text=False)
             text = " ".join(s.text.strip() for s in segments).strip()
+            if self.strip_name:
+                m = NAME_RE.search(text)
+                if m and m.start() <= 12:  # "Elise," / "Hey Elise," at the start
+                    text = text[m.end():].strip(" ,.!?;:-")
+                self.strip_name = False
             self.whisper_used = time.time()
             emit(evt="final", text=text)
         except Exception as e:  # noqa: BLE001

@@ -54,7 +54,7 @@ pub fn summon(app: &AppHandle, source: &str) -> bool {
         return false;
     }
     if let Some(w) = app.get_webview_window(LABEL) {
-        if source != "voice" {
+        if !source.starts_with("voice") {
             let _ = w.set_focus();
         }
     }

@@ -18,6 +18,7 @@ interface Session {
   key: number;
   greet: boolean;
   voice: boolean;
+  direct: boolean;
 }
 
 const VANISH_MS = 560;
@@ -42,10 +43,10 @@ export default function OverlayApp() {
   const queueRef = useRef(queue);
   queueRef.current = queue;
 
-  const startSession = useCallback((greet: boolean, voice = false) => {
+  const startSession = useCallback((greet: boolean, voice = false, direct = false) => {
     vanishing.current = false;
     keyRef.current += 1;
-    setSession({ key: keyRef.current, greet, voice });
+    setSession({ key: keyRef.current, greet, voice, direct });
   }, []);
 
   const pullReminders = useCallback(async () => {
@@ -73,7 +74,8 @@ export default function OverlayApp() {
       }),
       on<string>("summon", (source) => {
         setEye(modeRef.current === "expanded" ? "listening" : "appearing");
-        startSession(true, source === "voice");
+        const direct = source === "voice-direct";
+        startSession(!direct, source.startsWith("voice"), direct);
       }),
       on("reminder", () => pullReminders()),
     ];
@@ -215,6 +217,7 @@ export default function OverlayApp() {
               settings={settings}
               greet={session.greet}
               voiceSummoned={session.voice}
+              direct={session.direct}
               placement="overlay"
               onEyeState={setEye}
               onLevel={setLevel}
