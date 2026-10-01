@@ -22,7 +22,8 @@
         "decorations": false,
         "visible": false,
         "dragDropEnabled": false,
-        "backgroundColor": "#0A0710"
+        "backgroundColor": "#0A0710",
+        "additionalBrowserArgs": "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection --disable-gpu"
       },
       {
         "label": "overlay",
@@ -37,7 +38,8 @@
         "resizable": false,
         "shadow": false,
         "visible": false,
-        "focus": false
+        "focus": false,
+        "additionalBrowserArgs": "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection --disable-gpu"
       },
       {
         "label": "stage",
@@ -53,7 +55,8 @@
         "focus": false,
         "dragDropEnabled": false,
         "backgroundColor": "#000000",
-        "shadow": false
+        "shadow": false,
+        "additionalBrowserArgs": "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection --disable-gpu"
       }
     ],
     "security": {

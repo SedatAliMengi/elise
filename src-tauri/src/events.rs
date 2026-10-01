@@ -183,3 +183,19 @@ mod tests {
         assert_eq!(occ.len(), 2);
     }
 }
+
+#[cfg(test)]
+mod dump {
+    /// Diagnostic: `ELISE_DB=path cargo test dump_occurrences -- --ignored --nocapture`
+    #[test]
+    #[ignore]
+    fn dump_occurrences() {
+        let path = std::env::var("ELISE_DB").expect("ELISE_DB");
+        let db = crate::db::Db::open(std::path::Path::new(&path)).unwrap();
+        let p = |s: &str| chrono::NaiveDateTime::parse_from_str(s, "%Y-%m-%d %H:%M").unwrap();
+        for (a, b) in [("2026-09-28 00:00", "2026-11-09 00:00"), ("2026-10-01 00:00", "2026-10-02 00:00"), ("2026-01-01 00:00", "2027-01-01 00:00")] {
+            let occ = super::list_occurrences(&db, p(a), p(b)).unwrap();
+            println!("RANGE {a} {b} {}", serde_json::to_string(&occ).unwrap());
+        }
+    }
+}
