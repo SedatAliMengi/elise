@@ -1,0 +1,1450 @@
+{
+ "now": "2026-10-01T10:00:00",
+ "seed": [
+  {
+   "id": "lunch",
+   "title": "Lunch with Ali",
+   "start": "2026-10-01T13:00:00",
+   "end": "2026-10-01T14:00:00"
+  },
+  {
+   "id": "call",
+   "title": "Call with mom",
+   "start": "2026-10-01T15:00:00",
+   "end": "2026-10-01T15:30:00"
+  },
+  {
+   "id": "project",
+   "title": "Project meeting",
+   "start": "2026-10-02T11:00:00",
+   "end": "2026-10-02T12:00:00"
+  },
+  {
+   "id": "dentist",
+   "title": "Dentist",
+   "start": "2026-10-02T15:00:00",
+   "end": "2026-10-02T16:00:00"
+  },
+  {
+   "id": "standup",
+   "title": "Team standup",
+   "start": "2026-10-05T09:00:00",
+   "end": "2026-10-05T09:15:00",
+   "recurrence": {
+    "freq": "weekly",
+    "interval": 1,
+    "byWeekday": [
+     0
+    ]
+   }
+  },
+  {
+   "id": "gym",
+   "title": "Gym",
+   "start": "2026-10-06T18:00:00",
+   "end": "2026-10-06T19:00:00",
+   "reminders": [
+    {
+     "offsetMin": 60
+    }
+   ]
+  },
+  {
+   "id": "exam",
+   "title": "Math exam",
+   "start": "2026-10-14T10:00:00",
+   "end": "2026-10-14T12:00:00"
+  },
+  {
+   "id": "bday",
+   "title": "Ayşe's birthday",
+   "start": "2026-10-20T00:00:00",
+   "allDay": true,
+   "recurrence": {
+    "freq": "yearly",
+    "interval": 1
+   }
+  }
+ ],
+ "cases": [
+  {
+   "id": 1,
+   "category": "create",
+   "lang": "en",
+   "text": "Add a meeting tomorrow at 3pm",
+   "expect": {
+    "action": "create",
+    "title_any": [
+     "meeting"
+    ],
+    "start": "2026-10-02T15:00"
+   }
+  },
+  {
+   "id": 2,
+   "category": "create",
+   "lang": "en",
+   "text": "Meeting tomorrow at 3",
+   "expect": {
+    "action": "create",
+    "title_any": [
+     "meeting"
+    ],
+    "start": "2026-10-02T15:00"
+   }
+  },
+  {
+   "id": 3,
+   "category": "create",
+   "lang": "en",
+   "text": "Schedule dinner with Sarah on Saturday at 8pm",
+   "expect": {
+    "action": "create",
+    "title_any": [
+     "dinner"
+    ],
+    "start": "2026-10-03T20:00"
+   }
+  },
+  {
+   "id": 4,
+   "category": "create",
+   "lang": "en",
+   "text": "Add doctor appointment on October 7th at 10:30",
+   "expect": {
+    "action": "create",
+    "title_any": [
+     "doctor"
+    ],
+    "start": "2026-10-07T10:30"
+   }
+  },
+  {
+   "id": 5,
+   "category": "create",
+   "lang": "en",
+   "text": "Put a haircut on the 9th at 2pm",
+   "expect": {
+    "action": "create",
+    "title_any": [
+     "hair"
+    ],
+    "start": "2026-10-09T14:00"
+   }
+  },
+  {
+   "id": 6,
+   "category": "create",
+   "lang": "en",
+   "text": "Add coffee with Mark today at 4pm",
+   "expect": {
+    "action": "create",
+    "title_any": [
+     "coffee"
+    ],
+    "start": "2026-10-01T16:00"
+   }
+  },
+  {
+   "id": 7,
+   "category": "create",
+   "lang": "en",
+   "text": "Book a car service on Monday at 9am",
+   "expect": {
+    "action": "create",
+    "title_any": [
+     "car",
+     "service"
+    ],
+    "start": "2026-10-05T09:00"
+   }
+  },
+  {
+   "id": 8,
+   "category": "create",
+   "lang": "en",
+   "text": "Add 'Pay rent' on October 28th",
+   "expect": {
+    "action": "create",
+    "title_any": [
+     "rent"
+    ],
+    "start": "2026-10-28",
+    "all_day": true
+   }
+  },
+  {
+   "id": 9,
+   "category": "create",
+   "lang": "en",
+   "text": "Create an event called Movie night on Friday at 9pm",
+   "expect": {
+    "action": "create",
+    "title_any": [
+     "movie"
+    ],
+    "start": "2026-10-02T21:00"
+   }
+  },
+  {
+   "id": 10,
+   "category": "create",
+   "lang": "en",
+   "text": "Add a 2 hour study session tomorrow at 10am",
+   "expect": {
+    "action": "create",
+    "title_any": [
+     "study"
+    ],
+    "start": "2026-10-02T10:00",
+    "end": "2026-10-02T12:00"
+   }
+  },
+  {
+   "id": 11,
+   "category": "create",
+   "lang": "tr",
+   "text": "Yarın saat 3'te toplantı ekle",
+   "expect": {
+    "action": "create",
+    "title_any": [
+     "toplantı",
+     "meeting"
+    ],
+    "start": "2026-10-02T15:00"
+   }
+  },
+  {
+   "id": 12,
+   "category": "create",
+   "lang": "tr",
+   "text": "Yarın öğleden sonra 3'te toplantı",
+   "expect": {
+    "action": "create",
+    "title_any": [
+     "toplantı",
+     "meeting"
+    ],
+    "start": "2026-10-02T15:00"
+   }
+  },
+  {
+   "id": 13,
+   "category": "create",
+   "lang": "tr",
+   "text": "Cumartesi akşam 8'de Selin ile yemek",
+   "expect": {
+    "action": "create",
+    "title_any": [
+     "yemek",
+     "dinner"
+    ],
+    "start": "2026-10-03T20:00"
+   }
+  },
+  {
+   "id": 14,
+   "category": "create",
+   "lang": "tr",
+   "text": "7 Ekim saat 10:30'da doktor randevusu ekle",
+   "expect": {
+    "action": "create",
+    "title_any": [
+     "doktor",
+     "doctor"
+    ],
+    "start": "2026-10-07T10:30"
+   }
+  },
+  {
+   "id": 15,
+   "category": "create",
+   "lang": "tr",
+   "text": "Bugün saat 16:00'da kahve",
+   "expect": {
+    "action": "create",
+    "title_any": [
+     "kahve",
+     "coffee"
+    ],
+    "start": "2026-10-01T16:00"
+   }
+  },
+  {
+   "id": 16,
+   "category": "create",
+   "lang": "tr",
+   "text": "Pazartesi sabah 9'da araba servisi",
+   "expect": {
+    "action": "create",
+    "title_any": [
+     "servis",
+     "service",
+     "araba",
+     "car"
+    ],
+    "start": "2026-10-05T09:00"
+   }
+  },
+  {
+   "id": 17,
+   "category": "create",
+   "lang": "tr",
+   "text": "28 Ekim'e kira ödemesi ekle",
+   "expect": {
+    "action": "create",
+    "title_any": [
+     "kira",
+     "rent"
+    ],
+    "start": "2026-10-28",
+    "all_day": true
+   }
+  },
+  {
+   "id": 18,
+   "category": "create",
+   "lang": "tr",
+   "text": "Cuma akşam 9'da film gecesi",
+   "expect": {
+    "action": "create",
+    "title_any": [
+     "film",
+     "movie"
+    ],
+    "start": "2026-10-02T21:00"
+   }
+  },
+  {
+   "id": 19,
+   "category": "create",
+   "lang": "tr",
+   "text": "Yarın sabah 10'da 2 saatlik ders çalışma",
+   "expect": {
+    "action": "create",
+    "title_any": [
+     "ders",
+     "çalış",
+     "study"
+    ],
+    "start": "2026-10-02T10:00",
+    "end": "2026-10-02T12:00"
+   }
+  },
+  {
+   "id": 20,
+   "category": "create",
+   "lang": "tr",
+   "text": "Ayın 9'unda saat 14:00'te kuaför",
+   "expect": {
+    "action": "create",
+    "title_any": [
+     "kuaför",
+     "hair"
+    ],
+    "start": "2026-10-09T14:00"
+   }
+  },
+  {
+   "id": 21,
+   "category": "relative",
+   "lang": "en",
+   "text": "Add gym session in 2 weeks at 6pm",
+   "expect": {
+    "action": "create",
+    "title_any": [
+     "gym"
+    ],
+    "start": "2026-10-15T18:00"
+   }
+  },
+  {
+   "id": 22,
+   "category": "relative",
+   "lang": "en",
+   "text": "Remind me to call the bank in 3 days at noon",
+   "expect": {
+    "action": "create",
+    "title_any": [
+     "bank"
+    ],
+    "start": "2026-10-04T12:00"
+   }
+  },
+  {
+   "id": 23,
+   "category": "relative",
+   "lang": "en",
+   "text": "Add a team lunch next Wednesday at 12:30",
+   "expect": {
+    "action": "create",
+    "title_any": [
+     "lunch"
+    ],
+    "start": [
+     "2026-10-07T12:30",
+     "2026-10-14T12:30"
+    ]
+   }
+  },
+  {
+   "id": 24,
+   "category": "relative",
+   "lang": "en",
+   "text": "Dentist checkup the day after tomorrow at 11am",
+   "expect": {
+    "action": "create",
+    "title_any": [
+     "dentist",
+     "checkup"
+    ],
+    "start": "2026-10-03T11:00"
+   }
+  },
+  {
+   "id": 25,
+   "category": "relative",
+   "lang": "en",
+   "text": "Add a call with Tom this Saturday at 5pm",
+   "expect": {
+    "action": "create",
+    "title_any": [
+     "call",
+     "tom"
+    ],
+    "start": "2026-10-03T17:00"
+   }
+  },
+  {
+   "id": 26,
+   "category": "relative",
+   "lang": "en",
+   "text": "Plan a trip on the first of next month",
+   "expect": {
+    "action": "create",
+    "title_any": [
+     "trip"
+    ],
+    "start": "2026-11-01",
+    "all_day": true
+   }
+  },
+  {
+   "id": 27,
+   "category": "relative",
+   "lang": "en",
+   "text": "Add interview a week from today at 2pm",
+   "expect": {
+    "action": "create",
+    "title_any": [
+     "interview"
+    ],
+    "start": "2026-10-08T14:00"
+   }
+  },
+  {
+   "id": 28,
+   "category": "relative",
+   "lang": "en",
+   "text": "Add parent-teacher meeting on the last Friday of October at 4pm",
+   "expect": {
+    "action": "create",
+    "title_any": [
+     "parent",
+     "teacher",
+     "meeting"
+    ],
+    "start": "2026-10-30T16:00"
+   }
+  },
+  {
+   "id": 29,
+   "category": "relative",
+   "lang": "en",
+   "text": "Add yoga in 10 days at 7am",
+   "expect": {
+    "action": "create",
+    "title_any": [
+     "yoga"
+    ],
+    "start": "2026-10-11T07:00"
+   }
+  },
+  {
+   "id": 30,
+   "category": "relative",
+   "lang": "en",
+   "text": "Add a review meeting next Monday at 10",
+   "expect": {
+    "action": "create",
+    "title_any": [
+     "review"
+    ],
+    "start": [
+     "2026-10-05T10:00",
+     "2026-10-12T10:00"
+    ]
+   }
+  },
+  {
+   "id": 31,
+   "category": "relative",
+   "lang": "en",
+   "text": "Concert on New Year's Eve at 9pm",
+   "expect": {
+    "action": "create",
+    "title_any": [
+     "concert"
+    ],
+    "start": "2026-12-31T21:00"
+   }
+  },
+  {
+   "id": 32,
+   "category": "relative",
+   "lang": "en",
+   "text": "Add a vet appointment the Tuesday after next at 3pm",
+   "expect": {
+    "action": "create",
+    "title_any": [
+     "vet"
+    ],
+    "start": "2026-10-13T15:00"
+   }
+  },
+  {
+   "id": 33,
+   "category": "relative",
+   "lang": "tr",
+   "text": "2 hafta sonra saat 18:00'de spor",
+   "expect": {
+    "action": "create",
+    "title_any": [
+     "spor",
+     "gym",
+     "sport"
+    ],
+    "start": "2026-10-15T18:00"
+   }
+  },
+  {
+   "id": 34,
+   "category": "relative",
+   "lang": "tr",
+   "text": "3 gün sonra öğlen bankayı ara",
+   "expect": {
+    "action": "create",
+    "title_any": [
+     "banka",
+     "bank"
+    ],
+    "start": "2026-10-04T12:00"
+   }
+  },
+  {
+   "id": 35,
+   "category": "relative",
+   "lang": "tr",
+   "text": "Haftaya çarşamba 12:30'da öğle yemeği",
+   "expect": {
+    "action": "create",
+    "title_any": [
+     "yeme",
+     "lunch"
+    ],
+    "start": [
+     "2026-10-07T12:30",
+     "2026-10-14T12:30"
+    ]
+   }
+  },
+  {
+   "id": 36,
+   "category": "relative",
+   "lang": "tr",
+   "text": "Öbür gün saat 11'de diş kontrolü",
+   "expect": {
+    "action": "create",
+    "title_any": [
+     "diş",
+     "dentist",
+     "kontrol",
+     "checkup"
+    ],
+    "start": "2026-10-03T11:00"
+   }
+  },
+  {
+   "id": 37,
+   "category": "relative",
+   "lang": "tr",
+   "text": "Bu cumartesi saat 17:00'de Tom ile görüşme",
+   "expect": {
+    "action": "create",
+    "title_any": [
+     "görüşme",
+     "tom",
+     "call",
+     "meeting"
+    ],
+    "start": "2026-10-03T17:00"
+   }
+  },
+  {
+   "id": 38,
+   "category": "relative",
+   "lang": "tr",
+   "text": "Gelecek ayın birinde tatil",
+   "expect": {
+    "action": "create",
+    "title_any": [
+     "tatil",
+     "trip",
+     "vacation",
+     "holiday"
+    ],
+    "start": "2026-11-01",
+    "all_day": true
+   }
+  },
+  {
+   "id": 39,
+   "category": "relative",
+   "lang": "tr",
+   "text": "Bir hafta sonra saat 14:00'te mülakat",
+   "expect": {
+    "action": "create",
+    "title_any": [
+     "mülakat",
+     "interview"
+    ],
+    "start": "2026-10-08T14:00"
+   }
+  },
+  {
+   "id": 40,
+   "category": "relative",
+   "lang": "tr",
+   "text": "10 gün sonra sabah 7'de yoga",
+   "expect": {
+    "action": "create",
+    "title_any": [
+     "yoga"
+    ],
+    "start": "2026-10-11T07:00"
+   }
+  },
+  {
+   "id": 41,
+   "category": "relative",
+   "lang": "tr",
+   "text": "Yılbaşı gecesi saat 21:00'de konser",
+   "expect": {
+    "action": "create",
+    "title_any": [
+     "konser",
+     "concert"
+    ],
+    "start": "2026-12-31T21:00"
+   }
+  },
+  {
+   "id": 42,
+   "category": "relative",
+   "lang": "tr",
+   "text": "Önümüzdeki pazartesi saat 10'da değerlendirme toplantısı",
+   "expect": {
+    "action": "create",
+    "title_any": [
+     "değerlendirme",
+     "toplantı",
+     "review",
+     "meeting"
+    ],
+    "start": [
+     "2026-10-05T10:00",
+     "2026-10-12T10:00"
+    ]
+   }
+  },
+  {
+   "id": 43,
+   "category": "reminders",
+   "lang": "en",
+   "text": "Add a flight on October 10th at 6am and remind me the day before",
+   "expect": {
+    "action": "create",
+    "title_any": [
+     "flight"
+    ],
+    "start": "2026-10-10T06:00",
+    "reminders": [
+     1440
+    ]
+   }
+  },
+  {
+   "id": 44,
+   "category": "reminders",
+   "lang": "en",
+   "text": "Doctor appointment on July 5th at 10pm, remind me 2 days before, each of those two days",
+   "expect": {
+    "action": "create",
+    "title_any": [
+     "doctor"
+    ],
+    "start": "2027-07-05T22:00",
+    "reminders": [
+     1440,
+     2880
+    ]
+   }
+  },
+  {
+   "id": 45,
+   "category": "reminders",
+   "lang": "en",
+   "text": "Add a webinar tomorrow at 1pm and remind me 30 minutes before",
+   "expect": {
+    "action": "create",
+    "title_any": [
+     "webinar"
+    ],
+    "start": "2026-10-02T13:00",
+    "reminders": [
+     30
+    ]
+   }
+  },
+  {
+   "id": 46,
+   "category": "reminders",
+   "lang": "en",
+   "text": "Add Mom's birthday on March 3rd every year, remind me a week before",
+   "expect": {
+    "action": "create",
+    "title_any": [
+     "birthday"
+    ],
+    "start": "2027-03-03",
+    "all_day": true,
+    "freq": "yearly",
+    "reminders": [
+     10080
+    ]
+   }
+  },
+  {
+   "id": 47,
+   "category": "reminders",
+   "lang": "en",
+   "text": "Change the gym reminder to 30 minutes before",
+   "expect": {
+    "action": "update",
+    "target": "gym",
+    "reminders": [
+     30
+    ]
+   }
+  },
+  {
+   "id": 48,
+   "category": "reminders",
+   "lang": "en",
+   "text": "Remind me about the math exam 2 days before",
+   "expect": {
+    "action": "update",
+    "target": "exam",
+    "reminders": [
+     2880
+    ]
+   }
+  },
+  {
+   "id": 49,
+   "category": "reminders",
+   "lang": "tr",
+   "text": "10 Ekim sabah 6'da uçuş ekle, bir gün önce hatırlat",
+   "expect": {
+    "action": "create",
+    "title_any": [
+     "uçuş",
+     "flight"
+    ],
+    "start": "2026-10-10T06:00",
+    "reminders": [
+     1440
+    ]
+   }
+  },
+  {
+   "id": 50,
+   "category": "reminders",
+   "lang": "tr",
+   "text": "Yarın saat 13:00'te webinar, 30 dakika önce hatırlat",
+   "expect": {
+    "action": "create",
+    "title_any": [
+     "webinar"
+    ],
+    "start": "2026-10-02T13:00",
+    "reminders": [
+     30
+    ]
+   }
+  },
+  {
+   "id": 51,
+   "category": "reminders",
+   "lang": "tr",
+   "text": "Spor hatırlatmasını 2 saat önceye al",
+   "expect": {
+    "action": "update",
+    "target": "gym",
+    "reminders": [
+     120
+    ]
+   }
+  },
+  {
+   "id": 52,
+   "category": "reminders",
+   "lang": "tr",
+   "text": "Matematik sınavından 1 gün önce hatırlat",
+   "expect": {
+    "action": "update",
+    "target": "exam",
+    "reminders": [
+     1440
+    ]
+   }
+  },
+  {
+   "id": 53,
+   "category": "recurring",
+   "lang": "en",
+   "text": "Remind me every Monday at 8 to take out the trash",
+   "expect": {
+    "action": "create",
+    "title_any": [
+     "trash"
+    ],
+    "start": "2026-10-05T08:00",
+    "freq": "weekly"
+   }
+  },
+  {
+   "id": 54,
+   "category": "recurring",
+   "lang": "en",
+   "text": "Add piano lessons every Wednesday at 5pm",
+   "expect": {
+    "action": "create",
+    "title_any": [
+     "piano"
+    ],
+    "start": "2026-10-07T17:00",
+    "freq": "weekly"
+   }
+  },
+  {
+   "id": 55,
+   "category": "recurring",
+   "lang": "en",
+   "text": "Add a daily standup at 9:30 starting tomorrow",
+   "expect": {
+    "action": "create",
+    "title_any": [
+     "standup"
+    ],
+    "start": "2026-10-02T09:30",
+    "freq": "daily"
+   }
+  },
+  {
+   "id": 56,
+   "category": "recurring",
+   "lang": "en",
+   "text": "Pay bills on the 1st of every month",
+   "expect": {
+    "action": "create",
+    "title_any": [
+     "bill"
+    ],
+    "start": [
+     "2026-10-01",
+     "2026-11-01"
+    ],
+    "freq": "monthly"
+   }
+  },
+  {
+   "id": 57,
+   "category": "recurring",
+   "lang": "en",
+   "text": "Add Dad's birthday on December 12 every year",
+   "expect": {
+    "action": "create",
+    "title_any": [
+     "birthday"
+    ],
+    "start": "2026-12-12",
+    "freq": "yearly"
+   }
+  },
+  {
+   "id": 58,
+   "category": "recurring",
+   "lang": "tr",
+   "text": "Her pazartesi saat 8'de çöpü çıkar",
+   "expect": {
+    "action": "create",
+    "title_any": [
+     "çöp",
+     "trash",
+     "garbage"
+    ],
+    "start": "2026-10-05T08:00",
+    "freq": "weekly"
+   }
+  },
+  {
+   "id": 59,
+   "category": "recurring",
+   "lang": "tr",
+   "text": "Her çarşamba saat 17:00'de piyano dersi",
+   "expect": {
+    "action": "create",
+    "title_any": [
+     "piyano",
+     "piano"
+    ],
+    "start": "2026-10-07T17:00",
+    "freq": "weekly"
+   }
+  },
+  {
+   "id": 60,
+   "category": "recurring",
+   "lang": "tr",
+   "text": "Her ayın 1'inde faturaları öde",
+   "expect": {
+    "action": "create",
+    "title_any": [
+     "fatura",
+     "bill"
+    ],
+    "start": [
+     "2026-10-01",
+     "2026-11-01"
+    ],
+    "freq": "monthly"
+   }
+  },
+  {
+   "id": 61,
+   "category": "edit",
+   "lang": "en",
+   "text": "Move my 3pm to 5",
+   "expect": {
+    "action": "update",
+    "target": "call",
+    "start": "2026-10-01T17:00"
+   }
+  },
+  {
+   "id": 62,
+   "category": "edit",
+   "lang": "en",
+   "text": "Move the dentist to Monday same time",
+   "expect": {
+    "action": "update",
+    "target": "dentist",
+    "start": "2026-10-05T15:00"
+   }
+  },
+  {
+   "id": 63,
+   "category": "edit",
+   "lang": "en",
+   "text": "Push the project meeting one hour later",
+   "expect": {
+    "action": "update",
+    "target": "project",
+    "start": "2026-10-02T12:00"
+   }
+  },
+  {
+   "id": 64,
+   "category": "edit",
+   "lang": "en",
+   "text": "Reschedule lunch with Ali to 1:30",
+   "expect": {
+    "action": "update",
+    "target": "lunch",
+    "start": "2026-10-01T13:30"
+   }
+  },
+  {
+   "id": 65,
+   "category": "edit",
+   "lang": "en",
+   "text": "Move the math exam to October 16th",
+   "expect": {
+    "action": "update",
+    "target": "exam",
+    "start": "2026-10-16T10:00"
+   }
+  },
+  {
+   "id": 66,
+   "category": "edit",
+   "lang": "en",
+   "text": "Rename the dentist appointment to Orthodontist",
+   "expect": {
+    "action": "update",
+    "target": "dentist",
+    "title_any": [
+     "orthodont"
+    ],
+    "start": "2026-10-02T15:00"
+   }
+  },
+  {
+   "id": 67,
+   "category": "edit",
+   "lang": "en",
+   "text": "Change the gym on Tuesday to 7pm",
+   "expect": {
+    "action": "update",
+    "target": "gym",
+    "start": "2026-10-06T19:00"
+   }
+  },
+  {
+   "id": 68,
+   "category": "edit",
+   "lang": "en",
+   "text": "Postpone the call with mom to tomorrow at the same time",
+   "expect": {
+    "action": "update",
+    "target": "call",
+    "start": "2026-10-02T15:00"
+   }
+  },
+  {
+   "id": 69,
+   "category": "edit",
+   "lang": "en",
+   "text": "Make the project meeting 2 hours long",
+   "expect": {
+    "action": "update",
+    "target": "project",
+    "start": "2026-10-02T11:00",
+    "end": "2026-10-02T13:00"
+   }
+  },
+  {
+   "id": 70,
+   "category": "edit",
+   "lang": "en",
+   "text": "Move tomorrow's dentist appointment 30 minutes earlier",
+   "expect": {
+    "action": "update",
+    "target": "dentist",
+    "start": "2026-10-02T14:30"
+   }
+  },
+  {
+   "id": 71,
+   "category": "edit",
+   "lang": "tr",
+   "text": "Saat 3'teki görüşmemi 5'e al",
+   "expect": {
+    "action": "update",
+    "target": "call",
+    "start": "2026-10-01T17:00"
+   }
+  },
+  {
+   "id": 72,
+   "category": "edit",
+   "lang": "tr",
+   "text": "Dişçiyi pazartesiye aynı saate taşı",
+   "expect": {
+    "action": "update",
+    "target": "dentist",
+    "start": "2026-10-05T15:00"
+   }
+  },
+  {
+   "id": 73,
+   "category": "edit",
+   "lang": "tr",
+   "text": "Proje toplantısını bir saat ertele",
+   "expect": {
+    "action": "update",
+    "target": "project",
+    "start": "2026-10-02T12:00"
+   }
+  },
+  {
+   "id": 74,
+   "category": "edit",
+   "lang": "tr",
+   "text": "Ali ile öğle yemeğini 13:30'a al",
+   "expect": {
+    "action": "update",
+    "target": "lunch",
+    "start": "2026-10-01T13:30"
+   }
+  },
+  {
+   "id": 75,
+   "category": "edit",
+   "lang": "tr",
+   "text": "Matematik sınavını 16 Ekim'e taşı",
+   "expect": {
+    "action": "update",
+    "target": "exam",
+    "start": "2026-10-16T10:00"
+   }
+  },
+  {
+   "id": 76,
+   "category": "edit",
+   "lang": "tr",
+   "text": "Salı günkü sporu akşam 7'ye al",
+   "expect": {
+    "action": "update",
+    "target": "gym",
+    "start": "2026-10-06T19:00"
+   }
+  },
+  {
+   "id": 77,
+   "category": "edit",
+   "lang": "tr",
+   "text": "Annemle görüşmeyi yarın aynı saate ertele",
+   "expect": {
+    "action": "update",
+    "target": "call",
+    "start": "2026-10-02T15:00"
+   }
+  },
+  {
+   "id": 78,
+   "category": "edit",
+   "lang": "tr",
+   "text": "Yarınki dişçi randevusunu yarım saat öne çek",
+   "expect": {
+    "action": "update",
+    "target": "dentist",
+    "start": "2026-10-02T14:30"
+   }
+  },
+  {
+   "id": 79,
+   "category": "delete",
+   "lang": "en",
+   "text": "Cancel tomorrow's meeting",
+   "expect": {
+    "action": "delete",
+    "targets": [
+     "project"
+    ]
+   }
+  },
+  {
+   "id": 80,
+   "category": "delete",
+   "lang": "en",
+   "text": "Delete the gym session",
+   "expect": {
+    "action": "delete",
+    "targets": [
+     "gym"
+    ]
+   }
+  },
+  {
+   "id": 81,
+   "category": "delete",
+   "lang": "en",
+   "text": "Cancel lunch with Ali",
+   "expect": {
+    "action": "delete",
+    "targets": [
+     "lunch"
+    ]
+   }
+  },
+  {
+   "id": 82,
+   "category": "delete",
+   "lang": "en",
+   "text": "Remove the math exam from my calendar",
+   "expect": {
+    "action": "delete",
+    "targets": [
+     "exam"
+    ]
+   }
+  },
+  {
+   "id": 83,
+   "category": "delete",
+   "lang": "en",
+   "text": "Skip this Monday's team standup",
+   "expect": {
+    "action": "skip_occurrence",
+    "target": "standup",
+    "date": "2026-10-05"
+   }
+  },
+  {
+   "id": 84,
+   "category": "delete",
+   "lang": "en",
+   "text": "Cancel all my events tomorrow",
+   "expect": {
+    "action": "delete",
+    "targets": [
+     "project",
+     "dentist"
+    ]
+   }
+  },
+  {
+   "id": 85,
+   "category": "delete",
+   "lang": "tr",
+   "text": "Yarınki toplantıyı iptal et",
+   "expect": {
+    "action": "delete",
+    "targets": [
+     "project"
+    ]
+   }
+  },
+  {
+   "id": 86,
+   "category": "delete",
+   "lang": "tr",
+   "text": "Spor seansını sil",
+   "expect": {
+    "action": "delete",
+    "targets": [
+     "gym"
+    ]
+   }
+  },
+  {
+   "id": 87,
+   "category": "delete",
+   "lang": "tr",
+   "text": "Ali ile öğle yemeğini iptal et",
+   "expect": {
+    "action": "delete",
+    "targets": [
+     "lunch"
+    ]
+   }
+  },
+  {
+   "id": 88,
+   "category": "delete",
+   "lang": "tr",
+   "text": "Matematik sınavını takvimden kaldır",
+   "expect": {
+    "action": "delete",
+    "targets": [
+     "exam"
+    ]
+   }
+  },
+  {
+   "id": 89,
+   "category": "delete",
+   "lang": "tr",
+   "text": "Bu pazartesiki standup'ı atla",
+   "expect": {
+    "action": "skip_occurrence",
+    "target": "standup",
+    "date": "2026-10-05"
+   }
+  },
+  {
+   "id": 90,
+   "category": "query",
+   "lang": "en",
+   "text": "What do I have tomorrow?",
+   "expect": {
+    "action": "none",
+    "answer_any": [
+     "dentist",
+     "project"
+    ]
+   }
+  },
+  {
+   "id": 91,
+   "category": "query",
+   "lang": "en",
+   "text": "When is my dentist appointment?",
+   "expect": {
+    "action": "none",
+    "answer_any": [
+     "friday",
+     "tomorrow",
+     "october 2",
+     "oct 2",
+     "3 pm",
+     "3pm",
+     "15:00"
+    ]
+   }
+  },
+  {
+   "id": 92,
+   "category": "query",
+   "lang": "en",
+   "text": "What's on my calendar this weekend?",
+   "expect": {
+    "action": "none"
+   }
+  },
+  {
+   "id": 93,
+   "category": "query",
+   "lang": "en",
+   "text": "When is Ayşe's birthday?",
+   "expect": {
+    "action": "none",
+    "answer_any": [
+     "20"
+    ]
+   }
+  },
+  {
+   "id": 94,
+   "category": "query",
+   "lang": "en",
+   "text": "Do I have anything on Tuesday?",
+   "expect": {
+    "action": "none",
+    "answer_any": [
+     "gym"
+    ]
+   }
+  },
+  {
+   "id": 95,
+   "category": "query",
+   "lang": "tr",
+   "text": "Yarın neyim var?",
+   "expect": {
+    "action": "none",
+    "answer_any": [
+     "dişçi",
+     "dentist",
+     "proje",
+     "project"
+    ]
+   }
+  },
+  {
+   "id": 96,
+   "category": "query",
+   "lang": "tr",
+   "text": "Dişçi randevum ne zaman?",
+   "expect": {
+    "action": "none",
+    "answer_any": [
+     "cuma",
+     "friday",
+     "yarın",
+     "tomorrow",
+     "2 ekim",
+     "15:00",
+     "3 pm"
+    ]
+   }
+  },
+  {
+   "id": 97,
+   "category": "query",
+   "lang": "tr",
+   "text": "Bu hafta sonu bir planım var mı?",
+   "expect": {
+    "action": "none"
+   }
+  },
+  {
+   "id": 98,
+   "category": "query",
+   "lang": "tr",
+   "text": "Ayşe'nin doğum günü ne zaman?",
+   "expect": {
+    "action": "none",
+    "answer_any": [
+     "20"
+    ]
+   }
+  },
+  {
+   "id": 99,
+   "category": "ambiguous",
+   "lang": "en",
+   "text": "Set something for later",
+   "expect": {
+    "action": "clarify_or_none"
+   }
+  },
+  {
+   "id": 100,
+   "category": "ambiguous",
+   "lang": "en",
+   "text": "Move my meeting",
+   "expect": {
+    "action": "clarify_or_none"
+   }
+  },
+  {
+   "id": 101,
+   "category": "ambiguous",
+   "lang": "en",
+   "text": "Add an appointment",
+   "expect": {
+    "action": "clarify_or_none"
+   }
+  },
+  {
+   "id": 102,
+   "category": "ambiguous",
+   "lang": "en",
+   "text": "Cancel it",
+   "expect": {
+    "action": "clarify_or_none"
+   }
+  },
+  {
+   "id": 103,
+   "category": "ambiguous",
+   "lang": "tr",
+   "text": "Sonrası için bir şey ayarla",
+   "expect": {
+    "action": "clarify_or_none"
+   }
+  },
+  {
+   "id": 104,
+   "category": "ambiguous",
+   "lang": "tr",
+   "text": "Toplantımı taşı",
+   "expect": {
+    "action": "clarify_or_none"
+   }
+  }
+ ]
+}

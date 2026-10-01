@@ -34,7 +34,7 @@ impl CommandResult {
 #[derive(Default, Clone)]
 pub struct Session {
     messages: Vec<Value>,
-    changes: Vec<Change>,
+    pub(crate) changes: Vec<Change>,
     text: String,
     /// Waiting for the answer to ask_clarification: (tool_use_id, other tool results of that turn).
     pending: Option<(String, Vec<Value>)>,
@@ -58,8 +58,18 @@ for this and later ones, \"all\" for the whole series (default when the user spe
 days\" / \"every day for the N days before\" means N reminders: days_before=N, N-1, ..., 1. Day-based reminders fire \
 at the default reminder time unless the user gives a time. \"30 minutes before\" is minutes_before=30.
 - Moving several events (\"push everything tomorrow one hour later\") means one update_event call per event.
-- Only call ask_clarification when you truly cannot tell what the user means (e.g. two matching events). Ask one \
-short question. Otherwise act.
+- Be decisive. A phrase naming something with a date or time (\"Meeting tomorrow at 3\", \"Cuma akşam 9'da film \
+gecesi\") means: add it. Bare hours like \"at 3\" mean the afternoon/evening reading that makes sense (15:00).
+- Weekdays: use the calendar in the context to turn weekday names into dates; never compute them yourself. A plain \
+weekday means its next upcoming date (today only if the time is still ahead).
+- \"Add/schedule/book X\" always creates a new event, even if a similarly named one exists. Words like move, \
+reschedule, postpone, rename, change or cancel refer to an existing event.
+- Only call ask_clarification when you truly cannot tell what the user means: two or more events match equally \
+well, or the command has no usable details at all. Never ask to confirm something the user already said clearly, \
+and never ask which date a weekday or \"next month\" means: pick the nearest future one.
+- Commands may be in English or Turkish. Reply in the user's language. Turkish hints: yarın = tomorrow, öbür gün = \
+the day after tomorrow, haftaya = next week, bu = this, ertele = postpone, öne çek = make earlier, iptal et / sil = \
+cancel, hatırlat = remind, her = every, sabah = morning, öğlen = noon, akşam = evening. Keep the user's wording for titles.
 - Questions like \"what do I have on Friday?\" are answered in text: one or two short spoken-style sentences, no \
 lists or markdown.
 - After making changes, reply with a very short confirmation (a few words). Never ask for confirmation first."
@@ -284,7 +294,7 @@ fn occ_line(ev: &Event, start: NaiveDateTime) -> String {
         "id={} | {} | {}{}",
         ev.id,
         ev.title,
-        if ev.all_day { start.format("%Y-%m-%d (all day)").to_string() } else { start.format("%Y-%m-%dT%H:%M:%S").to_string() },
+        if ev.all_day { start.format("%a %Y-%m-%d (all day)").to_string() } else { start.format("%a %Y-%m-%dT%H:%M:%S").to_string() },
         if ev.recurrence.is_some() { " | repeating" } else { "" }
     );
     if let Some(end) = ev.end.filter(|_| !ev.all_day) {
@@ -333,20 +343,34 @@ enum ToolOutcome {
     Clarify(String),
 }
 
-fn run_tool(app: &AppHandle, name: &str, input: &Value, changes: &mut Vec<Change>) -> Result<ToolOutcome, String> {
-    let state = app.state::<AppState>();
-    let (default_time, default_len) = {
+/// Everything the command engine needs, independent of the running app, so the
+/// same code path is used by Elise and by the accuracy test (tests/commands.json).
+pub struct Ctx<'a> {
+    pub db: &'a std::sync::Mutex<crate::db::Db>,
+    pub default_time: String,
+    pub default_len: i64,
+    pub user_name: String,
+    pub now: NaiveDateTime,
+}
+
+impl<'a> Ctx<'a> {
+    fn from_app(state: &'a AppState) -> Self {
         let s = state.settings.lock().unwrap();
-        (s.default_reminder_time.clone(), s.default_event_minutes)
-    };
-    let mut db = state.db.lock().unwrap();
-    exec_tool(&mut db, &default_time, default_len, name, input, changes)
+        Ctx {
+            db: &state.db,
+            default_time: s.default_reminder_time.clone(),
+            default_len: s.default_event_minutes,
+            user_name: s.user_name.clone(),
+            now: now(),
+        }
+    }
 }
 
 fn exec_tool(
     db: &mut crate::db::Db,
     default_time: &str,
     default_len: i64,
+    today: NaiveDate,
     name: &str,
     input: &Value,
     changes: &mut Vec<Change>,
@@ -456,7 +480,7 @@ fn exec_tool(
             let q = str_field("query");
             let mut lines = Vec::new();
             if from.is_some() || to.is_some() {
-                let f = from.unwrap_or_else(|| now().date());
+                let f = from.unwrap_or(today);
                 let t = to.unwrap_or(f) + Duration::days(1);
                 for o in events::list_occurrences(db, f.and_hms_opt(0, 0, 0).unwrap(), t.and_hms_opt(0, 0, 0).unwrap())? {
                     if q.as_ref().map_or(true, |q| o.event.title.to_lowercase().contains(&q.to_lowercase())) {
@@ -480,25 +504,33 @@ fn exec_tool(
     }
 }
 
-fn context_block(app: &AppHandle) -> Result<String, String> {
-    let state = app.state::<AppState>();
-    let (default_time, default_len) = {
-        let s = state.settings.lock().unwrap();
-        (s.default_reminder_time.clone(), s.default_event_minutes)
-    };
-    let n = now();
-    let db = state.db.lock().unwrap();
+fn context_block(ctx: &Ctx) -> Result<String, String> {
+    let (default_time, default_len) = (&ctx.default_time, ctx.default_len);
+    let n = ctx.now;
+    let db = ctx.db.lock().unwrap();
     let from = (n.date() - Duration::days(3)).and_hms_opt(0, 0, 0).unwrap();
     let to = (n.date() + Duration::days(45)).and_hms_opt(0, 0, 0).unwrap();
     let mut occ = events::list_occurrences(&db, from, to)?;
     occ.sort_by_key(|o| o.start);
     let lines: Vec<String> = occ.iter().take(80).map(|o| occ_line(&o.event, o.start)).collect();
+    let days: Vec<String> = (0..15)
+        .map(|i| {
+            let d = n.date() + Duration::days(i);
+            let tag = match i {
+                0 => " (today)",
+                1 => " (tomorrow)",
+                _ => "",
+            };
+            format!("{} {}{tag}", d.format("%a"), d.format("%Y-%m-%d"))
+        })
+        .collect();
     Ok(format!(
-        "Now: {} ({}, week {}).\nDefault reminder time: {default_time}. Default event length: {default_len} minutes.\n\
+        "Now: {} ({}, week {}).\nNext days: {}.\nDefault reminder time: {default_time}. Default event length: {default_len} minutes.\n\
 Events from 3 days ago to 45 days ahead:\n{}",
         n.format("%Y-%m-%dT%H:%M:%S"),
         n.format("%A"),
         n.iso_week().week(),
+        days.join(", "),
         if lines.is_empty() { "(none)".into() } else { lines.join("\n") }
     ))
 }
@@ -513,6 +545,8 @@ async fn call_api(key: &str, system: &str, messages: &[Value]) -> Result<Value, 
     let body = json!({
         "model": MODEL,
         "max_tokens": 2048,
+        // Same command, same result: no sampling randomness for a tool-using assistant.
+        "temperature": 0,
         "system": system,
         "tools": tools(),
         "messages": messages,
@@ -561,25 +595,30 @@ pub async fn test_key(key: &str) -> Result<(), String> {
     }
 }
 
-pub async fn run(app: &AppHandle, session_id: &str, text: &str) -> CommandResult {
-    let Some(key) = crate::settings::get_api_key() else {
-        return CommandResult::error("I need my API key. Open Settings to add it.");
-    };
-    let state = app.state::<AppState>();
-    let user_name = state.settings.lock().unwrap().user_name.clone();
-    let system = system_prompt(&user_name);
+/// How one turn of the conversation ended.
+pub enum Turn {
+    /// Model finished; its final text (may be empty when it only made changes).
+    Done(String),
+    /// Model asked a clarification question; the session is parked.
+    Clarify(String),
+    /// API/network failure.
+    Error(String),
+}
 
-    let mut session = state.sessions.lock().unwrap().remove(session_id).unwrap_or_default();
-    let ctx = match context_block(app) {
-        Ok(c) => c,
-        Err(e) => return CommandResult::error(&e),
-    };
+/// One user turn: send the text (or the answer to a parked question) and run
+/// tools until the model stops. Changes accumulate in `session.changes`.
+pub async fn run_core(ctx: &Ctx<'_>, key: &str, session: &mut Session, text: &str) -> Turn {
+    let system = system_prompt(&ctx.user_name);
     if session.messages.is_empty() {
+        let c = match context_block(ctx) {
+            Ok(c) => c,
+            Err(e) => return Turn::Error(e),
+        };
         session.text = text.to_string();
         session.messages.push(json!({
             "role": "user",
             "content": [
-                {"type": "text", "text": format!("<context>\n{ctx}\n</context>")},
+                {"type": "text", "text": format!("<context>\n{c}\n</context>")},
                 {"type": "text", "text": text}
             ]
         }));
@@ -593,9 +632,9 @@ pub async fn run(app: &AppHandle, session_id: &str, text: &str) -> CommandResult
 
     let mut final_text = String::new();
     for _ in 0..MAX_STEPS {
-        let resp = match call_api(&key, &system, &session.messages).await {
+        let resp = match call_api(key, &system, &session.messages).await {
             Ok(v) => v,
-            Err(e) => return finish_with_error(app, session, &e),
+            Err(e) => return Turn::Error(e),
         };
         let content = resp.get("content").cloned().unwrap_or(json!([]));
         session.messages.push(json!({"role": "assistant", "content": content.clone()}));
@@ -624,7 +663,11 @@ pub async fn run(app: &AppHandle, session_id: &str, text: &str) -> CommandResult
             let id = block.get("id").and_then(Value::as_str).unwrap_or_default().to_string();
             let name = block.get("name").and_then(Value::as_str).unwrap_or_default();
             let input = block.get("input").cloned().unwrap_or(json!({}));
-            match run_tool(app, name, &input, &mut session.changes) {
+            let outcome = {
+                let mut db = ctx.db.lock().unwrap();
+                exec_tool(&mut db, &ctx.default_time, ctx.default_len, ctx.now.date(), name, &input, &mut session.changes)
+            };
+            match outcome {
                 Ok(ToolOutcome::Result(r)) => results.push(json!({"type": "tool_result", "tool_use_id": id, "content": r})),
                 Ok(ToolOutcome::Clarify(q)) => clarify = Some((id, q)),
                 Err(e) => results.push(json!({"type": "tool_result", "tool_use_id": id, "content": e, "is_error": true})),
@@ -633,13 +676,32 @@ pub async fn run(app: &AppHandle, session_id: &str, text: &str) -> CommandResult
         if let Some((id, q)) = clarify {
             // Park the conversation; the user's answer becomes this tool's result.
             session.pending = Some((id, results));
-            let summary = session.changes.iter().map(summarize).collect();
-            state.sessions.lock().unwrap().insert(session_id.to_string(), session);
-            return CommandResult { kind: "clarify".into(), message: q, summary, history_id: None };
+            return Turn::Clarify(q);
         }
         session.messages.push(json!({"role": "user", "content": results}));
     }
-    finish(app, session, final_text)
+    Turn::Done(final_text)
+}
+
+pub async fn run(app: &AppHandle, session_id: &str, text: &str) -> CommandResult {
+    let Some(key) = crate::settings::get_api_key() else {
+        return CommandResult::error("I need my API key. Open Settings to add it.");
+    };
+    let state = app.state::<AppState>();
+    let mut session = state.sessions.lock().unwrap().remove(session_id).unwrap_or_default();
+    let turn = {
+        let ctx = Ctx::from_app(&state);
+        run_core(&ctx, &key, &mut session, text).await
+    };
+    match turn {
+        Turn::Done(final_text) => finish(app, session, final_text),
+        Turn::Error(e) => finish_with_error(app, session, &e),
+        Turn::Clarify(q) => {
+            let summary = session.changes.iter().map(summarize).collect();
+            state.sessions.lock().unwrap().insert(session_id.to_string(), session);
+            CommandResult { kind: "clarify".into(), message: q, summary, history_id: None }
+        }
+    }
 }
 
 fn finish_with_error(app: &AppHandle, session: Session, msg: &str) -> CommandResult {
@@ -674,7 +736,8 @@ mod tests {
 
     fn run(db: &mut Db, name: &str, input: Value) -> (String, Vec<Change>) {
         let mut ch = vec![];
-        match exec_tool(db, "09:00", 60, name, &input, &mut ch).unwrap() {
+        let today = NaiveDate::from_ymd_opt(2027, 3, 1).unwrap();
+        match exec_tool(db, "09:00", 60, today, name, &input, &mut ch).unwrap() {
             ToolOutcome::Result(r) => (r, ch),
             ToolOutcome::Clarify(q) => (q, ch),
         }

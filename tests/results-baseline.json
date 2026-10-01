@@ -1,0 +1,1042 @@
+[
+  {
+    "category": "create",
+    "happened": "Added: Meeting · Fri 2 Oct 2026 15:00",
+    "id": 1,
+    "lang": "en",
+    "ms": 2117,
+    "pass": true,
+    "text": "Add a meeting tomorrow at 3pm",
+    "why": ""
+  },
+  {
+    "category": "create",
+    "happened": "answered: I need to clarify: is this a new meeting you want me to add to your calendar, or are you asking about an existing event? If it's new, what's the meeting about?",
+    "id": 2,
+    "lang": "en",
+    "ms": 1233,
+    "pass": false,
+    "text": "Meeting tomorrow at 3",
+    "why": "nothing was created"
+  },
+  {
+    "category": "create",
+    "happened": "Added: Dinner with Sarah · Sat 3 Oct 2026 20:00",
+    "id": 3,
+    "lang": "en",
+    "ms": 2220,
+    "pass": true,
+    "text": "Schedule dinner with Sarah on Saturday at 8pm",
+    "why": ""
+  },
+  {
+    "category": "create",
+    "happened": "Added: Doctor appointment · Wed 7 Oct 2026 10:30",
+    "id": 4,
+    "lang": "en",
+    "ms": 2156,
+    "pass": true,
+    "text": "Add doctor appointment on October 7th at 10:30",
+    "why": ""
+  },
+  {
+    "category": "create",
+    "happened": "Added: Haircut · Fri 9 Oct 2026 14:00",
+    "id": 5,
+    "lang": "en",
+    "ms": 2058,
+    "pass": true,
+    "text": "Put a haircut on the 9th at 2pm",
+    "why": ""
+  },
+  {
+    "category": "create",
+    "happened": "Added: Coffee with Mark · Thu 1 Oct 2026 16:00",
+    "id": 6,
+    "lang": "en",
+    "ms": 2577,
+    "pass": true,
+    "text": "Add coffee with Mark today at 4pm",
+    "why": ""
+  },
+  {
+    "category": "create",
+    "happened": "Added: Car service · Mon 5 Oct 2026 09:00",
+    "id": 7,
+    "lang": "en",
+    "ms": 1989,
+    "pass": true,
+    "text": "Book a car service on Monday at 9am",
+    "why": ""
+  },
+  {
+    "category": "create",
+    "happened": "Added: Pay rent · Wed 28 Oct 2026",
+    "id": 8,
+    "lang": "en",
+    "ms": 1962,
+    "pass": true,
+    "text": "Add 'Pay rent' on October 28th",
+    "why": ""
+  },
+  {
+    "category": "create",
+    "happened": "Added: Movie night · Fri 2 Oct 2026 21:00",
+    "id": 9,
+    "lang": "en",
+    "ms": 2269,
+    "pass": true,
+    "text": "Create an event called Movie night on Friday at 9pm",
+    "why": ""
+  },
+  {
+    "category": "create",
+    "happened": "Added: Study session · Fri 2 Oct 2026 10:00",
+    "id": 10,
+    "lang": "en",
+    "ms": 2278,
+    "pass": true,
+    "text": "Add a 2 hour study session tomorrow at 10am",
+    "why": ""
+  },
+  {
+    "category": "create",
+    "happened": "Added: Toplantı · Fri 2 Oct 2026 15:00",
+    "id": 11,
+    "lang": "tr",
+    "ms": 2368,
+    "pass": true,
+    "text": "Yarın saat 3'te toplantı ekle",
+    "why": ""
+  },
+  {
+    "category": "create",
+    "happened": "Added: Toplantı · Fri 2 Oct 2026 15:00",
+    "id": 12,
+    "lang": "tr",
+    "ms": 2118,
+    "pass": true,
+    "text": "Yarın öğleden sonra 3'te toplantı",
+    "why": ""
+  },
+  {
+    "category": "create",
+    "happened": "Added: Yemek with Selin · Sat 3 Oct 2026 20:00",
+    "id": 13,
+    "lang": "tr",
+    "ms": 2200,
+    "pass": true,
+    "text": "Cumartesi akşam 8'de Selin ile yemek",
+    "why": ""
+  },
+  {
+    "category": "create",
+    "happened": "Added: Doktor randevusu · Wed 7 Oct 2026 10:30",
+    "id": 14,
+    "lang": "tr",
+    "ms": 2065,
+    "pass": true,
+    "text": "7 Ekim saat 10:30'da doktor randevusu ekle",
+    "why": ""
+  },
+  {
+    "category": "create",
+    "happened": "Added: Kahve · Thu 1 Oct 2026 16:00",
+    "id": 15,
+    "lang": "tr",
+    "ms": 3568,
+    "pass": true,
+    "text": "Bugün saat 16:00'da kahve",
+    "why": ""
+  },
+  {
+    "category": "create",
+    "happened": "Added: Araba servisi · Mon 5 Oct 2026 09:00",
+    "id": 16,
+    "lang": "tr",
+    "ms": 2151,
+    "pass": true,
+    "text": "Pazartesi sabah 9'da araba servisi",
+    "why": ""
+  },
+  {
+    "category": "create",
+    "happened": "answered: I need to clarify the time for the rent payment on October 28th. What time should I schedule it for?",
+    "id": 17,
+    "lang": "tr",
+    "ms": 872,
+    "pass": false,
+    "text": "28 Ekim'e kira ödemesi ekle",
+    "why": "nothing was created"
+  },
+  {
+    "category": "create",
+    "happened": "asked: Which Friday do you mean—October 2nd or a later date?",
+    "id": 18,
+    "lang": "tr",
+    "ms": 1513,
+    "pass": false,
+    "text": "Cuma akşam 9'da film gecesi",
+    "why": "nothing was created"
+  },
+  {
+    "category": "create",
+    "happened": "Added: Ders çalışma · Fri 2 Oct 2026 10:00",
+    "id": 19,
+    "lang": "tr",
+    "ms": 2422,
+    "pass": true,
+    "text": "Yarın sabah 10'da 2 saatlik ders çalışma",
+    "why": ""
+  },
+  {
+    "category": "create",
+    "happened": "Added: Kuaför · Fri 9 Oct 2026 14:00",
+    "id": 20,
+    "lang": "tr",
+    "ms": 2227,
+    "pass": true,
+    "text": "Ayın 9'unda saat 14:00'te kuaför",
+    "why": ""
+  },
+  {
+    "category": "relative",
+    "happened": "Added: Gym · Thu 15 Oct 2026 18:00",
+    "id": 21,
+    "lang": "en",
+    "ms": 1971,
+    "pass": true,
+    "text": "Add gym session in 2 weeks at 6pm",
+    "why": ""
+  },
+  {
+    "category": "relative",
+    "happened": "Added: Call the bank · Sun 4 Oct 2026 12:00",
+    "id": 22,
+    "lang": "en",
+    "ms": 2039,
+    "pass": true,
+    "text": "Remind me to call the bank in 3 days at noon",
+    "why": ""
+  },
+  {
+    "category": "relative",
+    "happened": "Added: Team lunch · Wed 7 Oct 2026 12:30",
+    "id": 23,
+    "lang": "en",
+    "ms": 2194,
+    "pass": true,
+    "text": "Add a team lunch next Wednesday at 12:30",
+    "why": ""
+  },
+  {
+    "category": "relative",
+    "happened": "Updated: Dentist · Sat 3 Oct 2026 11:00",
+    "id": 24,
+    "lang": "en",
+    "ms": 2377,
+    "pass": false,
+    "text": "Dentist checkup the day after tomorrow at 11am",
+    "why": "also deleted [] / changed [\"dentist\"]"
+  },
+  {
+    "category": "relative",
+    "happened": "Added: Call with Tom · Sat 3 Oct 2026 17:00",
+    "id": 25,
+    "lang": "en",
+    "ms": 2027,
+    "pass": true,
+    "text": "Add a call with Tom this Saturday at 5pm",
+    "why": ""
+  },
+  {
+    "category": "relative",
+    "happened": "Added: Plan a trip · Sun 1 Nov 2026",
+    "id": 26,
+    "lang": "en",
+    "ms": 2298,
+    "pass": true,
+    "text": "Plan a trip on the first of next month",
+    "why": ""
+  },
+  {
+    "category": "relative",
+    "happened": "Added: Interview · Thu 8 Oct 2026 14:00",
+    "id": 27,
+    "lang": "en",
+    "ms": 1829,
+    "pass": true,
+    "text": "Add interview a week from today at 2pm",
+    "why": ""
+  },
+  {
+    "category": "relative",
+    "happened": "Added: Parent-teacher meeting · Fri 30 Oct 2026 16:00",
+    "id": 28,
+    "lang": "en",
+    "ms": 2318,
+    "pass": true,
+    "text": "Add parent-teacher meeting on the last Friday of October at 4pm",
+    "why": ""
+  },
+  {
+    "category": "relative",
+    "happened": "Added: Yoga · Sun 11 Oct 2026 07:00",
+    "id": 29,
+    "lang": "en",
+    "ms": 1909,
+    "pass": true,
+    "text": "Add yoga in 10 days at 7am",
+    "why": ""
+  },
+  {
+    "category": "relative",
+    "happened": "Added: Review meeting · Mon 5 Oct 2026 10:00",
+    "id": 30,
+    "lang": "en",
+    "ms": 1935,
+    "pass": true,
+    "text": "Add a review meeting next Monday at 10",
+    "why": ""
+  },
+  {
+    "category": "relative",
+    "happened": "Added: Concert · Thu 31 Dec 2026 21:00",
+    "id": 31,
+    "lang": "en",
+    "ms": 2088,
+    "pass": true,
+    "text": "Concert on New Year's Eve at 9pm",
+    "why": ""
+  },
+  {
+    "category": "relative",
+    "happened": "Added: Vet appointment · Tue 13 Oct 2026 15:00",
+    "id": 32,
+    "lang": "en",
+    "ms": 2213,
+    "pass": true,
+    "text": "Add a vet appointment the Tuesday after next at 3pm",
+    "why": ""
+  },
+  {
+    "category": "relative",
+    "happened": "Added: Spor · Thu 15 Oct 2026 18:00",
+    "id": 33,
+    "lang": "tr",
+    "ms": 2993,
+    "pass": true,
+    "text": "2 hafta sonra saat 18:00'de spor",
+    "why": ""
+  },
+  {
+    "category": "relative",
+    "happened": "Added: Bankayı ara · Sun 4 Oct 2026 12:00",
+    "id": 34,
+    "lang": "tr",
+    "ms": 2238,
+    "pass": true,
+    "text": "3 gün sonra öğlen bankayı ara",
+    "why": ""
+  },
+  {
+    "category": "relative",
+    "happened": "Added: Öğle yemeği · Wed 7 Oct 2026 12:30",
+    "id": 35,
+    "lang": "tr",
+    "ms": 2320,
+    "pass": false,
+    "text": "Haftaya çarşamba 12:30'da öğle yemeği",
+    "why": "title \"Öğle yemeği\" lacks any of [\"yemek\", \"lunch\"]"
+  },
+  {
+    "category": "relative",
+    "happened": "answered: I need to clarify which day you mean by \"öbür gün\" (the other day). Do you mean tomorrow (Friday, October 2nd)?",
+    "id": 36,
+    "lang": "tr",
+    "ms": 1061,
+    "pass": false,
+    "text": "Öbür gün saat 11'de diş kontrolü",
+    "why": "nothing was created"
+  },
+  {
+    "category": "relative",
+    "happened": "Added: Tom ile görüşme · Sat 3 Oct 2026 17:00",
+    "id": 37,
+    "lang": "tr",
+    "ms": 2961,
+    "pass": true,
+    "text": "Bu cumartesi saat 17:00'de Tom ile görüşme",
+    "why": ""
+  },
+  {
+    "category": "relative",
+    "happened": "asked: Do you mean November 1st, 2026 (next month) or October 1st, 2027 (next year)?",
+    "id": 38,
+    "lang": "tr",
+    "ms": 1562,
+    "pass": false,
+    "text": "Gelecek ayın birinde tatil",
+    "why": "nothing was created"
+  },
+  {
+    "category": "relative",
+    "happened": "Added: Mülakat · Thu 8 Oct 2026 14:00",
+    "id": 39,
+    "lang": "tr",
+    "ms": 2030,
+    "pass": true,
+    "text": "Bir hafta sonra saat 14:00'te mülakat",
+    "why": ""
+  },
+  {
+    "category": "relative",
+    "happened": "Added: Yoga · Sun 11 Oct 2026 07:00",
+    "id": 40,
+    "lang": "tr",
+    "ms": 1819,
+    "pass": true,
+    "text": "10 gün sonra sabah 7'de yoga",
+    "why": ""
+  },
+  {
+    "category": "relative",
+    "happened": "Added: Konser · Thu 31 Dec 2026 21:00",
+    "id": 41,
+    "lang": "tr",
+    "ms": 3133,
+    "pass": true,
+    "text": "Yılbaşı gecesi saat 21:00'de konser",
+    "why": ""
+  },
+  {
+    "category": "relative",
+    "happened": "Added: Değerlendirme toplantısı · Mon 5 Oct 2026 10:00",
+    "id": 42,
+    "lang": "tr",
+    "ms": 2383,
+    "pass": true,
+    "text": "Önümüzdeki pazartesi saat 10'da değerlendirme toplantısı",
+    "why": ""
+  },
+  {
+    "category": "reminders",
+    "happened": "Added: Flight · Sat 10 Oct 2026 06:00 · reminders: 1d before 09:00",
+    "id": 43,
+    "lang": "en",
+    "ms": 2090,
+    "pass": true,
+    "text": "Add a flight on October 10th at 6am and remind me the day before",
+    "why": ""
+  },
+  {
+    "category": "reminders",
+    "happened": "Added: Doctor appointment · Mon 5 Jul 2027 22:00 · reminders: 2d before 09:00, 1d before 09:00",
+    "id": 44,
+    "lang": "en",
+    "ms": 2895,
+    "pass": true,
+    "text": "Doctor appointment on July 5th at 10pm, remind me 2 days before, each of those two days",
+    "why": ""
+  },
+  {
+    "category": "reminders",
+    "happened": "Added: Webinar · Fri 2 Oct 2026 13:00 · reminders: 30m before",
+    "id": 45,
+    "lang": "en",
+    "ms": 2330,
+    "pass": true,
+    "text": "Add a webinar tomorrow at 1pm and remind me 30 minutes before",
+    "why": ""
+  },
+  {
+    "category": "reminders",
+    "happened": "Added: Mom's birthday · Wed 3 Mar 2027 · repeating · reminders: 7d before 09:00",
+    "id": 46,
+    "lang": "en",
+    "ms": 2829,
+    "pass": true,
+    "text": "Add Mom's birthday on March 3rd every year, remind me a week before",
+    "why": ""
+  },
+  {
+    "category": "reminders",
+    "happened": "Updated: Gym · Tue 6 Oct 2026 18:00 · reminders: 30m before",
+    "id": 47,
+    "lang": "en",
+    "ms": 2388,
+    "pass": true,
+    "text": "Change the gym reminder to 30 minutes before",
+    "why": ""
+  },
+  {
+    "category": "reminders",
+    "happened": "Updated: Math exam · Wed 14 Oct 2026 10:00 · reminders: 2d before 09:00",
+    "id": 48,
+    "lang": "en",
+    "ms": 2066,
+    "pass": true,
+    "text": "Remind me about the math exam 2 days before",
+    "why": ""
+  },
+  {
+    "category": "reminders",
+    "happened": "Added: Uçuş · Sat 10 Oct 2026 06:00 · reminders: 1d before 09:00",
+    "id": 49,
+    "lang": "tr",
+    "ms": 2810,
+    "pass": true,
+    "text": "10 Ekim sabah 6'da uçuş ekle, bir gün önce hatırlat",
+    "why": ""
+  },
+  {
+    "category": "reminders",
+    "happened": "Added: Webinar · Fri 2 Oct 2026 13:00 · reminders: 30m before",
+    "id": 50,
+    "lang": "tr",
+    "ms": 4472,
+    "pass": true,
+    "text": "Yarın saat 13:00'te webinar, 30 dakika önce hatırlat",
+    "why": ""
+  },
+  {
+    "category": "reminders",
+    "happened": "Updated: Gym · Tue 6 Oct 2026 18:00 · reminders: 2h before",
+    "id": 51,
+    "lang": "tr",
+    "ms": 1913,
+    "pass": true,
+    "text": "Spor hatırlatmasını 2 saat önceye al",
+    "why": ""
+  },
+  {
+    "category": "reminders",
+    "happened": "Updated: Math exam · Wed 14 Oct 2026 10:00 · reminders: 1d before 09:00",
+    "id": 52,
+    "lang": "tr",
+    "ms": 2256,
+    "pass": true,
+    "text": "Matematik sınavından 1 gün önce hatırlat",
+    "why": ""
+  },
+  {
+    "category": "recurring",
+    "happened": "Added: Take out the trash · Mon 5 Oct 2026 08:00 · repeating · reminders: at start 08:00",
+    "id": 53,
+    "lang": "en",
+    "ms": 2521,
+    "pass": true,
+    "text": "Remind me every Monday at 8 to take out the trash",
+    "why": ""
+  },
+  {
+    "category": "recurring",
+    "happened": "Added: Piano lessons · Wed 7 Oct 2026 17:00 · repeating",
+    "id": 54,
+    "lang": "en",
+    "ms": 2198,
+    "pass": true,
+    "text": "Add piano lessons every Wednesday at 5pm",
+    "why": ""
+  },
+  {
+    "category": "recurring",
+    "happened": "Added: Daily standup · Fri 2 Oct 2026 09:30 · repeating",
+    "id": 55,
+    "lang": "en",
+    "ms": 2234,
+    "pass": true,
+    "text": "Add a daily standup at 9:30 starting tomorrow",
+    "why": ""
+  },
+  {
+    "category": "recurring",
+    "happened": "Added: Pay bills · Thu 1 Oct 2026 · repeating",
+    "id": 56,
+    "lang": "en",
+    "ms": 2475,
+    "pass": true,
+    "text": "Pay bills on the 1st of every month",
+    "why": ""
+  },
+  {
+    "category": "recurring",
+    "happened": "Added: Dad's birthday · Sat 12 Dec 2026 · repeating",
+    "id": 57,
+    "lang": "en",
+    "ms": 2238,
+    "pass": true,
+    "text": "Add Dad's birthday on December 12 every year",
+    "why": ""
+  },
+  {
+    "category": "recurring",
+    "happened": "Added: Çöpü çıkar · Mon 5 Oct 2026 08:00 · repeating",
+    "id": 58,
+    "lang": "tr",
+    "ms": 2337,
+    "pass": true,
+    "text": "Her pazartesi saat 8'de çöpü çıkar",
+    "why": ""
+  },
+  {
+    "category": "recurring",
+    "happened": "Added: Piyano dersi · Wed 7 Oct 2026 17:00 · repeating",
+    "id": 59,
+    "lang": "tr",
+    "ms": 2470,
+    "pass": true,
+    "text": "Her çarşamba saat 17:00'de piyano dersi",
+    "why": ""
+  },
+  {
+    "category": "recurring",
+    "happened": "Added: Faturaları öde · Sun 1 Nov 2026 · repeating",
+    "id": 60,
+    "lang": "tr",
+    "ms": 2738,
+    "pass": true,
+    "text": "Her ayın 1'inde faturaları öde",
+    "why": ""
+  },
+  {
+    "category": "edit",
+    "happened": "Updated: Call with mom · Thu 1 Oct 2026 17:00",
+    "id": 61,
+    "lang": "en",
+    "ms": 2093,
+    "pass": true,
+    "text": "Move my 3pm to 5",
+    "why": ""
+  },
+  {
+    "category": "edit",
+    "happened": "Updated: Dentist · Mon 5 Oct 2026 15:00",
+    "id": 62,
+    "lang": "en",
+    "ms": 2896,
+    "pass": true,
+    "text": "Move the dentist to Monday same time",
+    "why": ""
+  },
+  {
+    "category": "edit",
+    "happened": "Updated: Project meeting · Fri 2 Oct 2026 12:00",
+    "id": 63,
+    "lang": "en",
+    "ms": 2056,
+    "pass": true,
+    "text": "Push the project meeting one hour later",
+    "why": ""
+  },
+  {
+    "category": "edit",
+    "happened": "Updated: Lunch with Ali · Thu 1 Oct 2026 13:30",
+    "id": 64,
+    "lang": "en",
+    "ms": 2173,
+    "pass": true,
+    "text": "Reschedule lunch with Ali to 1:30",
+    "why": ""
+  },
+  {
+    "category": "edit",
+    "happened": "Updated: Math exam · Fri 16 Oct 2026 10:00",
+    "id": 65,
+    "lang": "en",
+    "ms": 2065,
+    "pass": true,
+    "text": "Move the math exam to October 16th",
+    "why": ""
+  },
+  {
+    "category": "edit",
+    "happened": "Updated: Orthodontist · Fri 2 Oct 2026 15:00",
+    "id": 66,
+    "lang": "en",
+    "ms": 2056,
+    "pass": true,
+    "text": "Rename the dentist appointment to Orthodontist",
+    "why": ""
+  },
+  {
+    "category": "edit",
+    "happened": "Updated: Gym · Tue 6 Oct 2026 19:00 · reminders: 1h before",
+    "id": 67,
+    "lang": "en",
+    "ms": 1926,
+    "pass": true,
+    "text": "Change the gym on Tuesday to 7pm",
+    "why": ""
+  },
+  {
+    "category": "edit",
+    "happened": "Updated: Call with mom · Fri 2 Oct 2026 15:00",
+    "id": 68,
+    "lang": "en",
+    "ms": 1976,
+    "pass": true,
+    "text": "Postpone the call with mom to tomorrow at the same time",
+    "why": ""
+  },
+  {
+    "category": "edit",
+    "happened": "Updated: Project meeting · Fri 2 Oct 2026 11:00",
+    "id": 69,
+    "lang": "en",
+    "ms": 1963,
+    "pass": true,
+    "text": "Make the project meeting 2 hours long",
+    "why": ""
+  },
+  {
+    "category": "edit",
+    "happened": "Updated: Dentist · Fri 2 Oct 2026 14:30",
+    "id": 70,
+    "lang": "en",
+    "ms": 3013,
+    "pass": true,
+    "text": "Move tomorrow's dentist appointment 30 minutes earlier",
+    "why": ""
+  },
+  {
+    "category": "edit",
+    "happened": "Updated: Call with mom · Thu 1 Oct 2026 17:00",
+    "id": 71,
+    "lang": "tr",
+    "ms": 2770,
+    "pass": true,
+    "text": "Saat 3'teki görüşmemi 5'e al",
+    "why": ""
+  },
+  {
+    "category": "edit",
+    "happened": "Updated: Dentist · Mon 5 Oct 2026 15:00",
+    "id": 72,
+    "lang": "tr",
+    "ms": 1946,
+    "pass": true,
+    "text": "Dişçiyi pazartesiye aynı saate taşı",
+    "why": ""
+  },
+  {
+    "category": "edit",
+    "happened": "Updated: Project meeting · Fri 2 Oct 2026 12:00",
+    "id": 73,
+    "lang": "tr",
+    "ms": 2589,
+    "pass": true,
+    "text": "Proje toplantısını bir saat ertele",
+    "why": ""
+  },
+  {
+    "category": "edit",
+    "happened": "Updated: Lunch with Ali · Thu 1 Oct 2026 13:30",
+    "id": 74,
+    "lang": "tr",
+    "ms": 1888,
+    "pass": true,
+    "text": "Ali ile öğle yemeğini 13:30'a al",
+    "why": ""
+  },
+  {
+    "category": "edit",
+    "happened": "Updated: Math exam · Fri 16 Oct 2026 10:00",
+    "id": 75,
+    "lang": "tr",
+    "ms": 1900,
+    "pass": true,
+    "text": "Matematik sınavını 16 Ekim'e taşı",
+    "why": ""
+  },
+  {
+    "category": "edit",
+    "happened": "asked: Do you want to move the existing gym event to Tuesday at 7 PM, or add a new gym session on Tuesday at 7 PM?",
+    "id": 76,
+    "lang": "tr",
+    "ms": 1576,
+    "pass": false,
+    "text": "Salı günkü sporu akşam 7'ye al",
+    "why": "start 2026-10-06T18:00 not in [\"2026-10-06T19:00\"]"
+  },
+  {
+    "category": "edit",
+    "happened": "asked: Move \"Call with mom\" from today 3pm to tomorrow at 3pm?",
+    "id": 77,
+    "lang": "tr",
+    "ms": 1561,
+    "pass": false,
+    "text": "Annemle görüşmeyi yarın aynı saate ertele",
+    "why": "start 2026-10-01T15:00 not in [\"2026-10-02T15:00\"]"
+  },
+  {
+    "category": "edit",
+    "happened": "Updated: Dentist · Fri 2 Oct 2026 14:30",
+    "id": 78,
+    "lang": "tr",
+    "ms": 2064,
+    "pass": true,
+    "text": "Yarınki dişçi randevusunu yarım saat öne çek",
+    "why": ""
+  },
+  {
+    "category": "delete",
+    "happened": "Removed: Project meeting · Fri 2 Oct 2026 11:00",
+    "id": 79,
+    "lang": "en",
+    "ms": 1925,
+    "pass": true,
+    "text": "Cancel tomorrow's meeting",
+    "why": ""
+  },
+  {
+    "category": "delete",
+    "happened": "Removed: Gym · Tue 6 Oct 2026 18:00",
+    "id": 80,
+    "lang": "en",
+    "ms": 1540,
+    "pass": true,
+    "text": "Delete the gym session",
+    "why": ""
+  },
+  {
+    "category": "delete",
+    "happened": "Removed: Lunch with Ali · Thu 1 Oct 2026 13:00",
+    "id": 81,
+    "lang": "en",
+    "ms": 1660,
+    "pass": true,
+    "text": "Cancel lunch with Ali",
+    "why": ""
+  },
+  {
+    "category": "delete",
+    "happened": "Removed: Math exam · Wed 14 Oct 2026 10:00",
+    "id": 82,
+    "lang": "en",
+    "ms": 1665,
+    "pass": true,
+    "text": "Remove the math exam from my calendar",
+    "why": ""
+  },
+  {
+    "category": "delete",
+    "happened": "Updated: Team standup · Mon 5 Oct 2026 09:00",
+    "id": 83,
+    "lang": "en",
+    "ms": 2176,
+    "pass": true,
+    "text": "Skip this Monday's team standup",
+    "why": ""
+  },
+  {
+    "category": "delete",
+    "happened": "Removed: Project meeting · Fri 2 Oct 2026 11:00 / Removed: Dentist · Fri 2 Oct 2026 15:00",
+    "id": 84,
+    "lang": "en",
+    "ms": 2231,
+    "pass": true,
+    "text": "Cancel all my events tomorrow",
+    "why": ""
+  },
+  {
+    "category": "delete",
+    "happened": "asked: Which meeting tomorrow would you like to cancel: Project meeting at 11:00 or Dentist at 15:00?",
+    "id": 85,
+    "lang": "tr",
+    "ms": 1612,
+    "pass": false,
+    "text": "Yarınki toplantıyı iptal et",
+    "why": "not deleted: [\"project\"]"
+  },
+  {
+    "category": "delete",
+    "happened": "Removed: Gym · Tue 6 Oct 2026 18:00",
+    "id": 86,
+    "lang": "tr",
+    "ms": 1786,
+    "pass": true,
+    "text": "Spor seansını sil",
+    "why": ""
+  },
+  {
+    "category": "delete",
+    "happened": "Removed: Lunch with Ali · Thu 1 Oct 2026 13:00",
+    "id": 87,
+    "lang": "tr",
+    "ms": 1901,
+    "pass": true,
+    "text": "Ali ile öğle yemeğini iptal et",
+    "why": ""
+  },
+  {
+    "category": "delete",
+    "happened": "Removed: Math exam · Wed 14 Oct 2026 10:00",
+    "id": 88,
+    "lang": "tr",
+    "ms": 1697,
+    "pass": true,
+    "text": "Matematik sınavını takvimden kaldır",
+    "why": ""
+  },
+  {
+    "category": "delete",
+    "happened": "Updated: Team standup · Mon 5 Oct 2026 09:00",
+    "id": 89,
+    "lang": "tr",
+    "ms": 2108,
+    "pass": true,
+    "text": "Bu pazartesiki standup'ı atla",
+    "why": ""
+  },
+  {
+    "category": "query",
+    "happened": "answered: You have a Project meeting at 11am and a Dentist appointment at 3pm tomorrow.",
+    "id": 90,
+    "lang": "en",
+    "ms": 1185,
+    "pass": true,
+    "text": "What do I have tomorrow?",
+    "why": ""
+  },
+  {
+    "category": "query",
+    "happened": "answered: Your dentist appointment is on Friday, October 2nd at 3 PM.",
+    "id": 91,
+    "lang": "en",
+    "ms": 991,
+    "pass": true,
+    "text": "When is my dentist appointment?",
+    "why": ""
+  },
+  {
+    "category": "query",
+    "happened": "answered: You have the gym on Tuesday evening at 6pm, and a math exam on Wednesday morning at 10am. (This weekend—Saturday and Sunday—is clear.)",
+    "id": 92,
+    "lang": "en",
+    "ms": 1259,
+    "pass": true,
+    "text": "What's on my calendar this weekend?",
+    "why": ""
+  },
+  {
+    "category": "query",
+    "happened": "answered: Ayşe's birthday is on October 20th, and it's a recurring all-day event.",
+    "id": 93,
+    "lang": "en",
+    "ms": 800,
+    "pass": true,
+    "text": "When is Ayşe's birthday?",
+    "why": ""
+  },
+  {
+    "category": "query",
+    "happened": "answered: You have a project meeting at 11am and a dentist appointment at 3pm on Tuesday.",
+    "id": 94,
+    "lang": "en",
+    "ms": 848,
+    "pass": false,
+    "text": "Do I have anything on Tuesday?",
+    "why": "answer lacks any of [\"gym\"]"
+  },
+  {
+    "category": "query",
+    "happened": "answered: Yarın (Cuma) saat 11:00'de proje toplantın var, sonrasında saat 15:00'de diş hekimine gitmen gerekiyor.",
+    "id": 95,
+    "lang": "tr",
+    "ms": 1277,
+    "pass": true,
+    "text": "Yarın neyim var?",
+    "why": ""
+  },
+  {
+    "category": "query",
+    "happened": "answered: Dentist appointment is on Friday, October 2nd at 3 PM.",
+    "id": 96,
+    "lang": "tr",
+    "ms": 825,
+    "pass": true,
+    "text": "Dişçi randevum ne zaman?",
+    "why": ""
+  },
+  {
+    "category": "query",
+    "happened": "answered: You have the gym on Tuesday evening (October 6th at 6pm). That's the only event this weekend.\n\nWait, let me correct that—Tuesday is not this weekend. This weekend (Saturday and Sunday, October 3rd and 4th) you have nothing scheduled.",
+    "id": 97,
+    "lang": "tr",
+    "ms": 1570,
+    "pass": true,
+    "text": "Bu hafta sonu bir planım var mı?",
+    "why": ""
+  },
+  {
+    "category": "query",
+    "happened": "answered: Ayşe's birthday is on October 20th. It's set as an all-day repeating event, so it comes back every year.",
+    "id": 98,
+    "lang": "tr",
+    "ms": 951,
+    "pass": true,
+    "text": "Ayşe'nin doğum günü ne zaman?",
+    "why": ""
+  },
+  {
+    "category": "ambiguous",
+    "happened": "answered: I need more details. What would you like to schedule for later today, and what time?",
+    "id": 99,
+    "lang": "en",
+    "ms": 903,
+    "pass": true,
+    "text": "Set something for later",
+    "why": ""
+  },
+  {
+    "category": "ambiguous",
+    "happened": "answered: I need clarification. You have several events coming up. Which meeting would you like to move?\n\n- Project meeting on Oct 2 at 11:00\n- Dentist on Oct 2 at 15:00\n- Team standup (recurring weekly)\n- Math exam on Oct 14 at 10:00\n\nOr did you mean something else?",
+    "id": 100,
+    "lang": "en",
+    "ms": 1442,
+    "pass": true,
+    "text": "Move my meeting",
+    "why": ""
+  },
+  {
+    "category": "ambiguous",
+    "happened": "answered: I'd be happy to help you add an appointment! Could you tell me:\n\n1. **What is the appointment for?** (title)\n2. **When is it?** (date and time)\n3. **How long will it take?** (optional - if you don't say, I'll assume 60 minutes)",
+    "id": 101,
+    "lang": "en",
+    "ms": 1380,
+    "pass": true,
+    "text": "Add an appointment",
+    "why": ""
+  },
+  {
+    "category": "ambiguous",
+    "happened": "answered: I need to know which event you'd like to cancel. You have several upcoming events:\n\n- Lunch with Ali (today at 1pm)\n- Call with mom (today at 3pm)\n- Project meeting (Friday at 11am)\n- Dentist (Friday at 3pm)\n- Team standup (multiple dates)\n- Gym (Oct 6)\n- Math exam (Oct 14)\n- Ayşe's birthday (Oct 20)\n\nWhich one should I cancel?",
+    "id": 102,
+    "lang": "en",
+    "ms": 1741,
+    "pass": true,
+    "text": "Cancel it",
+    "why": ""
+  },
+  {
+    "category": "ambiguous",
+    "happened": "answered: I'd be happy to help, but \"Sonrası için bir şey ayarla\" (set something for later) is a bit vague. Could you tell me what event you'd like to create and when? For example, a specific time, date, or what the event is about?",
+    "id": 103,
+    "lang": "tr",
+    "ms": 1182,
+    "pass": true,
+    "text": "Sonrası için bir şey ayarla",
+    "why": ""
+  },
+  {
+    "category": "ambiguous",
+    "happened": "answered: I need to know which meeting you want to move. You have several upcoming meetings:\n\n- Lunch with Ali (today at 1 PM)\n- Call with mom (today at 3 PM)\n- Project meeting (tomorrow at 11 AM)\n- Dentist (tomorrow at 3 PM)\n- Team standup (multiple dates)\n- Math exam (Oct 14)\n\nWhich one would you like to move, and when?",
+    "id": 104,
+    "lang": "tr",
+    "ms": 1469,
+    "pass": true,
+    "text": "Toplantımı taşı",
+    "why": ""
+  }
+]

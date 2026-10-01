@@ -11,6 +11,9 @@ mod tray;
 mod voice;
 mod webview;
 
+#[cfg(test)]
+mod eval;
+
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, AtomicU64};

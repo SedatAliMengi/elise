@@ -40,3 +40,15 @@ __pycache__
 # built installers
 installer/
 transfer/
+
+# headless browser profile for screenshots
+scripts/.edge-profile/
+
+# secrets & personal data (never commit)
+.env
+.env.*
+!.env.example
+*.db
+*.db-shm
+*.db-wal
+voice.log

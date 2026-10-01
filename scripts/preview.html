@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Elise preview</title>
+</head>
+<body>
+<div id="root"></div>
+<script>
+// Browser preview of Elise's UI with made-up sample data (no Tauri, no real
+// calendar). Used by scripts/screenshots.mjs for the README images.
+//   npm run dev   then open http://localhost:1420/scripts/preview.html
+//   (?window=stage / ?window=overlay for the other windows)
+(function () {
+  const pad = (n) => String(n).padStart(2, "0");
+  const iso = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:00`;
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const at = (dayOffset, h, m = 0) => { const d = new Date(today); d.setDate(d.getDate() + dayOffset); d.setHours(h, m, 0, 0); return d; };
+  const ev = (id, title, start, mins, extra = {}) => ({
+    event: { id, title, start: iso(start), end: mins ? iso(new Date(start.getTime() + mins * 60000)) : null, allDay: !mins,
+      location: extra.location || null, notes: null, color: extra.color || null, recurrence: extra.rec || null, exdates: [],
+      parentId: null, reminders: extra.reminders || [] },
+    start: iso(start), end: iso(new Date(start.getTime() + (mins || 1440) * 60000)),
+  });
+  const OCC = [];
+  OCC.push(ev("lunch", "Lunch with Ali", at(0, 13), 60, { color: "#22b8cf" }));
+  OCC.push(ev("project", "Project meeting", at(1, 11), 60));
+  OCC.push(ev("dentist", "Dentist", at(1, 15), 60, { color: "#d70000", reminders: [{ id: "r1", offsetMin: 1440, atTime: "20:00" }] }));
+  OCC.push(ev("dinner", "Dinner with Sarah", at(2, 20), 90, { color: "#ff4f8b", location: "Kadıköy" }));
+  for (let w = 0; w < 6; w++) OCC.push(ev("standup", "Team standup", at(4 + 7 * w - 7, 9), 15, { color: "#5b6cff", rec: { freq: "weekly", interval: 1 } }));
+  for (let w = 0; w < 6; w++) OCC.push(ev("gym", "Gym", at(5 + 7 * w - 7, 18), 60, { color: "#f2a93b", rec: { freq: "weekly", interval: 1 } }));
+  for (let w = 0; w < 6; w++) OCC.push(ev("piano", "Piano lesson", at(6 + 7 * w - 7, 17), 60, { color: "#b44cff", rec: { freq: "weekly", interval: 1 } }));
+  OCC.push(ev("exam", "Math exam", at(13, 10), 120, { color: "#d70000" }));
+  OCC.push(ev("bday", "Ayşe's birthday", at(19, 0), 0, { color: "#ff4f8b", rec: { freq: "yearly", interval: 1 } }));
+  OCC.push(ev("flight", "Flight to Berlin", at(22, 6), 180, { color: "#22b8cf" }));
+
+  const which = new URLSearchParams(location.search).get("window") || "main";
+  const SETTINGS = { userName: "Enigma", voiceResponses: false, voiceRate: 1, wakeWord: true, hotkey: "Ctrl+Alt+E", hoverMode: false,
+    hoverPos: null, autostart: true, defaultReminderTime: "09:00", defaultEventMinutes: 60, weekStartsMonday: true, time24h: true };
+  let nextCb = 1;
+  window.__TAURI_INTERNALS__ = {
+    metadata: { currentWindow: { label: which }, currentWebview: { label: which, windowLabel: which } },
+    transformCallback(cb) { const id = nextCb++; window["_" + id] = cb; return id; },
+    unregisterCallback() {},
+    async invoke(cmd, args) {
+      switch (cmd) {
+        case "list_occurrences": return OCC.filter((o) => o.start < args.to && o.end > args.from);
+        case "get_settings": return SETTINGS;
+        case "has_api_key": return true;
+        case "voice_status": return { available: true, message: "" };
+        case "is_calendar_visible": return true;
+        case "stage_is_on": return which === "stage";
+        case "overlay_get_mode": return "expanded";
+        case "take_reminders": return which === "overlay" ? [{ reminderId: "r1", occKey: "x", eventId: "dentist", title: "Dentist",
+          start: OCC[2].start, allDay: false, location: "Dr. Kaya's clinic", missed: false }] : [];
+        case "run_command":
+          await new Promise((r) => setTimeout(r, 900));
+          return { kind: "done", message: "Understood.", historyId: "h1",
+            summary: ["Added: Dinner with Sarah · Sat 20:00 · reminders: 1h before"] };
+        case "voice_speak": return false;
+        case "plugin:event|listen": return nextCb++;
+        default: return null;
+      }
+    },
+  };
+})();
+</script>
+<script type="module" src="/src/main.tsx"></script>
+</body>
+</html>
