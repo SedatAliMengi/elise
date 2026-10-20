@@ -42,7 +42,7 @@ export const api = {
     invoke<void>("reminder_action", { reminderId: p.reminderId, occKey: p.occKey, action, minutes: minutes ?? null }),
   reminderToast: (title: string, body: string) => invoke<void>("reminder_toast", { title, body }),
   voiceListen: () => invoke<void>("voice_listen"),
-  voiceCancel: () => invoke<void>("voice_cancel"),
+  voiceCancel: (why = "") => invoke<void>("voice_cancel", { why }),
   voiceFinish: () => invoke<void>("voice_finish"),
   voiceStatus: () => invoke<VoiceStatus>("voice_status"),
   showCalendar: (settings = false) => invoke<void>("show_calendar", { settings }),

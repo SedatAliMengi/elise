@@ -170,7 +170,12 @@ pub fn finish(app: &AppHandle) {
 }
 
 pub fn cancel(app: &AppHandle) {
-    send(app, json!({"cmd": "cancel"}));
+    cancel_because(app, "");
+}
+
+/// Cancel, noting the reason in voice.log (e.g. "overlay: Esc key").
+pub fn cancel_because(app: &AppHandle, why: &str) {
+    send(app, json!({"cmd": "cancel", "why": why}));
 }
 
 pub fn set_wake(app: &AppHandle, on: bool) {

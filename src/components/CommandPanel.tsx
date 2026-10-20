@@ -56,20 +56,22 @@ export default function CommandPanel({ settings, greet = true, placement, onEyeS
   const settingsRef = useRef(settings);
   settingsRef.current = settings;
 
-  const stopMic = useCallback(() => {
-    if (micRef.current !== "off") api.voiceCancel().catch(() => {});
+  /** `why` goes to voice.log, so a recording that stops early can be traced. */
+  const stopMic = useCallback((why: string) => {
+    if (micRef.current !== "off") api.voiceCancel(`${placement}: ${why}`).catch(() => {});
     micRef.current = "off";
     setMic("off");
     onLevel?.(0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onLevel]);
 
-  const finish = useCallback(() => {
+  const finish = useCallback((why: string) => {
     if (finished.current) return;
     finished.current = true;
     clearTimeout(closeTimer.current);
     clearTimeout(idleTimer.current);
     stopSpeaking();
-    stopMic();
+    stopMic(why);
     api.cancelSession(session.current).catch(() => {});
     onFinish();
   }, [onFinish, stopMic]);
@@ -80,7 +82,7 @@ export default function CommandPanel({ settings, greet = true, placement, onEyeS
       clearTimeout(closeTimer.current);
       const tick = () => {
         if (hovered.current) closeTimer.current = window.setTimeout(tick, 800);
-        else finish();
+        else finish("closed after the reply");
       };
       closeTimer.current = window.setTimeout(tick, ms);
     },
@@ -157,7 +159,7 @@ export default function CommandPanel({ settings, greet = true, placement, onEyeS
             const heard = (e.text ?? "").trim();
             if (heard) submit(heard);
             else if (phaseRef.current === "more" && !inputRef.current?.value.trim()) {
-              finish(); // no answer to "Anything else?"
+              finish("no answer to Anything else"); // no answer to "Anything else?"
             } else if (!voiceMode.current) {
               // Nobody spoke (maybe they're about to type): stop quietly.
               onEyeState("listening");
@@ -261,7 +263,7 @@ export default function CommandPanel({ settings, greet = true, placement, onEyeS
     const t = (raw ?? text).trim();
     if (!t || phase === "thinking") return;
     if (DISMISS.test(t)) {
-      stopMic();
+      stopMic("sent away");
       setText("");
       setSummary([]);
       setPhase("undone");
@@ -273,7 +275,7 @@ export default function CommandPanel({ settings, greet = true, placement, onEyeS
     }
     if (raw === undefined) {
       voiceMode.current = false; // typed: don't auto-listen afterwards
-      stopMic();
+      stopMic("typed command sent");
     }
     clearTimeout(closeTimer.current);
     clearTimeout(idleTimer.current);
@@ -321,7 +323,7 @@ export default function CommandPanel({ settings, greet = true, placement, onEyeS
   const onKey = (e: React.KeyboardEvent) => {
     if (e.key === "Escape") {
       e.preventDefault();
-      finish();
+      finish("Esc key");
     } else if (e.key === "Enter") {
       e.preventDefault();
       submit();
@@ -347,7 +349,7 @@ export default function CommandPanel({ settings, greet = true, placement, onEyeS
       onKeyDown={onKey}
     >
       <div className="cmd__bubble">
-        <button className="cmd__close" onClick={finish} title="Send Elise away (Esc)" aria-label="Close">
+        <button className="cmd__close" onClick={() => finish("close button")} title="Send Elise away (Esc)" aria-label="Close">
           ✕
         </button>
         <AnimatePresence mode="wait" initial={false}>
@@ -397,7 +399,7 @@ export default function CommandPanel({ settings, greet = true, placement, onEyeS
               setText(e.target.value);
               if (micRef.current !== "off") {
                 voiceMode.current = false;
-                stopMic();
+                stopMic(`text typed into the box (${JSON.stringify(e.target.value.slice(0, 40))})`);
               }
               bumpIdle();
             }}

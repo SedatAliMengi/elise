@@ -407,9 +407,9 @@ class Voice:
                 self.sync_stream()
             emit(evt="final", text="")
 
-    def cancel(self):
+    def cancel(self, why: str = ""):
         if self.mode == "record":
-            log(f"recording cancelled after {time.time() - self.rec_started:.1f}s")
+            log(f"recording cancelled after {time.time() - self.rec_started:.1f}s by {why or 'the app'}")
         self.ducker.restore()
         with self.lock:
             self.mode = "wake" if self.wake_on else "idle"
@@ -513,12 +513,16 @@ class Voice:
         rms = float(np.sqrt(np.mean(block.astype(np.float32) ** 2)))
         if self.noise_floor is None:
             self.noise_floor = min(rms, 400.0)
-        elif not self.speech_started:
-            self.noise_floor = 0.9 * self.noise_floor + 0.1 * min(rms, self.noise_floor * 2)
+        elif not self.speech_started and rms < self.noise_floor * 2.5:
+            # Learn the room only from quiet blocks; letting speech in would
+            # raise the bar until a soft voice never counts as speech.
+            self.noise_floor = 0.9 * self.noise_floor + 0.1 * rms
         # Start needs clear speech; once talking, quieter syllables still count
         # as speech (hysteresis), so soft voices aren't cut mid-sentence.
-        thr = max(self.noise_floor * 2.2, 260.0)
-        thr_off = max(self.noise_floor * 1.5, 180.0)
+        # Relative to the room: a quiet USB headset mic sits around 35 and a
+        # soft voice can peak at only ~150, so fixed floors must stay low.
+        thr = max(self.noise_floor * 2.5, 90.0)
+        thr_off = max(self.noise_floor * 1.8, 65.0)
 
         level = min(1.0, rms / 4000.0)
         if abs(level - self.last_level) > 0.02:
@@ -728,7 +732,7 @@ def stdin_reader(v: Voice, spk: Speaker):
         elif cmd == "listen":
             v.listen()
         elif cmd == "cancel":
-            v.cancel()
+            v.cancel(str(msg.get("why", "")))
         elif cmd == "finish":
             v.finish()
         elif cmd == "preload":

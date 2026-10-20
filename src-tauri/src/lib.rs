@@ -326,8 +326,8 @@ fn voice_finish(app: AppHandle) {
 }
 
 #[tauri::command]
-fn voice_cancel(app: AppHandle) {
-    voice::cancel(&app);
+fn voice_cancel(app: AppHandle, why: Option<String>) {
+    voice::cancel_because(&app, why.as_deref().unwrap_or(""));
 }
 
 /// Returns false when the voice engine isn't running (nothing will be said).
