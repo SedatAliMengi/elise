@@ -255,6 +255,9 @@ class Voice:
         self.vad_heard = False
         self.vad_gap = 0.0
         self.vad_ok = True
+        self.last_block_at = 0.0
+        self.stream_opened_at = 0.0
+        self.mic_status = ""
         self.ducker = Ducker(os.path.dirname(os.path.abspath(models_dir)))
         self.ducker.restore_after_crash()
 
@@ -320,6 +323,8 @@ class Voice:
     # ---------- microphone ----------
 
     def _callback(self, indata, frames, t, status):  # noqa: ARG002
+        if status:
+            self.mic_status = str(status)
         try:
             self.audio.put_nowait(indata[:, 0].copy())
         except queue.Full:
@@ -333,12 +338,23 @@ class Voice:
         try:
             sd._terminate()  # re-scan devices so a changed default mic is picked up
             sd._initialize()
-            self.stream = sd.InputStream(samplerate=SR, channels=1, dtype="int16", blocksize=BLOCK, callback=self._callback)
-            self.stream.start()
+            # WASAPI (Windows' current audio path) first: the old MME path could
+            # silently stop delivering audio after a buffer overflow.
             try:
-                log("mic opened:", sd.query_devices(kind="input")["name"])
-            except Exception:  # noqa: BLE001
-                pass
+                wasapi = next(h for h in sd.query_hostapis() if "WASAPI" in h["name"])
+                dev = wasapi["default_input_device"]
+                self.stream = sd.InputStream(
+                    device=dev, samplerate=SR, channels=1, dtype="int16", blocksize=BLOCK,
+                    extra_settings=sd.WasapiSettings(auto_convert=True), callback=self._callback,
+                )
+                name = f"{sd.query_devices(dev)['name']} (WASAPI)"
+            except Exception as e:  # noqa: BLE001
+                log("WASAPI mic unavailable, using MME:", e)
+                self.stream = sd.InputStream(samplerate=SR, channels=1, dtype="int16", blocksize=BLOCK, callback=self._callback)
+                name = f"{sd.query_devices(kind='input')['name']} (MME)"
+            self.stream.start()
+            self.stream_opened_at = time.time()
+            log("mic opened:", name)
             return True
         except Exception as e:  # noqa: BLE001
             self.stream = None
@@ -420,7 +436,9 @@ class Voice:
     def cancel(self, why: str = ""):
         if self.mode == "record":
             log(f"recording cancelled after {time.time() - self.rec_started:.1f}s by {why or 'the app'}"
-                f" (speech detected: {self.vad_heard}, silence at end: {self.vad_gap:.1f}s)")
+                f" (speech detected: {self.vad_heard}, silence at end: {self.vad_gap:.1f}s,"
+                f" audio received: {len(self.rec_buf) * BLOCK / SR:.1f}s, speaking guard: {speaking()},"
+                f" last mic block {time.time() - self.last_block_at:.1f}s ago, mic status: {self.mic_status or 'ok'})")
             if self.rec_buf:
                 save_clip(self.models_dir, "cancelled", np.concatenate(self.rec_buf), f"cancelled by {why}")
         self.ducker.restore()
@@ -634,14 +652,29 @@ class Voice:
                     self.rec.Reset()
                 self.sync_stream()
 
+    def mic_watchdog(self):
+        """A mic that stops delivering audio (driver hiccup, device switch) is
+        reopened instead of leaving Elise deaf."""
+        if self.stream is None or self.mode not in ("wake", "armed", "record"):
+            return
+        since = time.time() - max(self.last_block_at, self.stream_opened_at)
+        if since < 2.0:
+            return
+        log(f"mic stalled: no audio for {since:.1f}s (mode {self.mode}, status {self.mic_status or 'ok'}); reopening")
+        with self.lock:
+            self.close_stream()
+            self.open_stream()
+
     def loop(self):
         last_housekeeping = time.time()
         while True:
             try:
                 block = self.audio.get(timeout=1.0)
+                self.last_block_at = time.time()
                 self.on_block(block)
             except queue.Empty:
                 pass
+            self.mic_watchdog()
             if time.time() - last_housekeeping > 30:
                 last_housekeeping = time.time()
                 self.maybe_unload_whisper()
