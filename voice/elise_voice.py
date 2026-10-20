@@ -73,6 +73,11 @@ SPEAK_TAIL_S = 0.6
 # End-of-speech detection. People pause mid-sentence, so only a clear stretch of
 # silence ends a command; the mic button ("I'm done") ends it immediately.
 SILENCE_END_S = 2.5
+# The end of a command is found by a speech detector (Silero VAD, shipped with
+# faster-whisper), not by loudness: breathing, rustle and room noise are loud
+# enough to look like talking, but aren't speech.
+VAD_END_S = 2.0
+VAD_EVERY_BLOCKS = 4  # check every 0.4 s
 MAX_COMMAND_S = 30
 NO_SPEECH_TIMEOUT_S = 8
 
@@ -247,6 +252,9 @@ class Voice:
         self.loud_blocks = 0
         self.noise_floor = None
         self.last_level = 0.0
+        self.vad_heard = False
+        self.vad_gap = 0.0
+        self.vad_ok = True
         self.ducker = Ducker(os.path.dirname(os.path.abspath(models_dir)))
         self.ducker.restore_after_crash()
 
@@ -379,6 +387,8 @@ class Voice:
             self.silence_blocks = 0
             self.loud_blocks = 0
             self.noise_floor = None
+            self.vad_heard = False
+            self.vad_gap = 0.0
             if not self.open_stream():
                 self.mode = "wake" if self.wake_on else "idle"
                 return
@@ -409,7 +419,10 @@ class Voice:
 
     def cancel(self, why: str = ""):
         if self.mode == "record":
-            log(f"recording cancelled after {time.time() - self.rec_started:.1f}s by {why or 'the app'}")
+            log(f"recording cancelled after {time.time() - self.rec_started:.1f}s by {why or 'the app'}"
+                f" (speech detected: {self.vad_heard}, silence at end: {self.vad_gap:.1f}s)")
+            if self.rec_buf:
+                save_clip(self.models_dir, "cancelled", np.concatenate(self.rec_buf), f"cancelled by {why}")
         self.ducker.restore()
         with self.lock:
             self.mode = "wake" if self.wake_on else "idle"
@@ -494,6 +507,8 @@ class Voice:
                 self.speech_started = True
                 self.silence_blocks = 0
                 self.loud_blocks = 0
+                self.vad_heard = False
+                self.vad_gap = 0.0
                 # Room noise = the quietest moments of what we already heard.
                 n = len(clip) // BLOCK
                 levels = np.sqrt(np.mean(clip[: n * BLOCK].reshape(n, BLOCK).astype(np.float32) ** 2, axis=1)) if n else np.array([300.0])
@@ -538,14 +553,20 @@ class Voice:
             self.loud_blocks = 0
             self.silence_blocks += 1
 
-        elapsed = time.time() - self.rec_started
-        if self.speech_started and self.loud_blocks == 2:
-            log(f"speech started (rms {rms:.0f}, threshold {thr:.0f})")
-        silence_end = int(SILENCE_END_S * SR / BLOCK)
-        done = (self.speech_started and self.silence_blocks >= silence_end) or elapsed > MAX_COMMAND_S
+        # Seconds of audio (not wall time): the same in tests and live.
+        elapsed = len(self.rec_buf) * BLOCK / SR
+        if len(self.rec_buf) % VAD_EVERY_BLOCKS == 0 and self.vad_ok:
+            self.check_vad()
+        if self.vad_ok:
+            heard = self.vad_heard
+            ended = heard and self.vad_gap >= VAD_END_S
+        else:  # loudness fallback if the speech detector can't load
+            heard = self.speech_started
+            ended = heard and self.silence_blocks >= int(SILENCE_END_S * SR / BLOCK)
+        done = ended or elapsed > MAX_COMMAND_S
         if done:
-            log(f"recording ended after {elapsed:.1f}s ({'silence' if elapsed <= MAX_COMMAND_S else 'max length'})")
-        if not self.speech_started and elapsed > NO_SPEECH_TIMEOUT_S:
+            log(f"recording ended after {elapsed:.1f}s ({'end of speech' if ended else 'max length'})")
+        if not heard and elapsed > NO_SPEECH_TIMEOUT_S:
             log(f"no speech heard in {NO_SPEECH_TIMEOUT_S}s (last rms {rms:.0f}, threshold {thr:.0f}, noise floor {self.noise_floor:.0f})")
             self.ducker.restore()
             with self.lock:
@@ -562,6 +583,27 @@ class Voice:
             self.ducker.restore()
             emit(evt="level", v=0)
             threading.Thread(target=self.transcribe, args=(audio,), daemon=True).start()
+
+    def check_vad(self):
+        """Is there speech in the recording, and how long since it last stopped?"""
+        try:
+            from faster_whisper.vad import VadOptions, get_speech_timestamps
+
+            tail = np.concatenate(self.rec_buf[-80:]).astype(np.float32) / 32768.0  # last 8 s
+            ts = get_speech_timestamps(
+                tail, VadOptions(threshold=0.5, min_speech_duration_ms=200, min_silence_duration_ms=300, speech_pad_ms=0)
+            )
+        except Exception as e:  # noqa: BLE001
+            log("speech detector unavailable, using loudness:", e)
+            self.vad_ok = False
+            return
+        if ts:
+            if not self.vad_heard:
+                log(f"speech detected at {len(self.rec_buf) * BLOCK / SR:.1f}s")
+            self.vad_heard = True
+            self.vad_gap = (len(tail) - ts[-1]["end"]) / SR
+        else:
+            self.vad_gap = len(tail) / SR
 
     def transcribe(self, audio: np.ndarray):
         emit(evt="transcribing")
