@@ -81,6 +81,113 @@ def speaking() -> bool:
     return time.time() < _speaking_until
 
 
+# While a command is recorded, other apps (games, videos, music) are turned down,
+# so their sound doesn't drown the user out or keep the recording from ending.
+DUCK_TO = 0.15
+DEBUG_CLIPS = 12  # last N recordings kept in <data>/voice-debug for diagnosis
+
+
+class Ducker:
+    """Lowers every other app's volume while Elise listens, then restores it.
+    The original volumes are also saved to disk, so a crash mid-command can't
+    leave the PC quiet: they're restored the next time the engine starts."""
+
+    def __init__(self, data_dir: str):
+        self.path = os.path.join(data_dir, "ducked.json")
+        self.saved: dict[str, float] = {}
+        self.lock = threading.Lock()
+
+    def _sessions(self):
+        import comtypes
+        from pycaw.pycaw import AudioUtilities
+
+        comtypes.CoInitialize()
+        me = os.getpid()
+        out = []
+        for s in AudioUtilities.GetAllSessions():
+            if s.Process is None or s.Process.pid == me:
+                continue
+            out.append((f"{s.Process.name()}:{s.Process.pid}", s.SimpleAudioVolume))
+        return out
+
+    def duck(self):
+        with self.lock:
+            if self.saved:
+                return
+            try:
+                for key, vol in self._sessions():
+                    v = vol.GetMasterVolume()
+                    if v > DUCK_TO:
+                        self.saved[key] = v
+                        vol.SetMasterVolume(DUCK_TO, None)
+                with open(self.path, "w", encoding="utf-8") as f:
+                    json.dump(self.saved, f)
+            except Exception as e:  # noqa: BLE001
+                log("duck failed:", e)
+
+    def restore(self, saved: dict[str, float] | None = None):
+        with self.lock:
+            saved = saved if saved is not None else self.saved
+            if not saved:
+                return
+            try:
+                for key, vol in self._sessions():
+                    if key in saved:
+                        vol.SetMasterVolume(saved[key], None)
+            except Exception as e:  # noqa: BLE001
+                log("restore volume failed:", e)
+            self.saved = {}
+            try:
+                os.remove(self.path)
+            except OSError:
+                pass
+
+    def restore_after_crash(self):
+        try:
+            with open(self.path, encoding="utf-8") as f:
+                saved = json.load(f)
+        except (OSError, ValueError):
+            return
+        log("restoring app volumes left lowered:", saved)
+        self.restore(saved)
+
+
+def save_clip(models_dir: str, kind: str, audio: np.ndarray, heard: str) -> None:
+    """Keep the last few recordings (local only) so misheard commands can be diagnosed."""
+    import wave
+
+    d = os.path.join(os.path.dirname(os.path.abspath(models_dir)), "voice-debug")
+    try:
+        os.makedirs(d, exist_ok=True)
+        name = time.strftime("%Y%m%d-%H%M%S-") + kind
+        with wave.open(os.path.join(d, name + ".wav"), "wb") as w:
+            w.setnchannels(1)
+            w.setsampwidth(2)
+            w.setframerate(SR)
+            w.writeframes(audio.astype(np.int16).tobytes())
+        with open(os.path.join(d, name + ".txt"), "w", encoding="utf-8") as f:
+            f.write(heard)
+        clips = sorted(f for f in os.listdir(d) if f.endswith(".wav"))
+        for old in clips[:-DEBUG_CLIPS]:
+            for ext in (".wav", ".txt"):
+                try:
+                    os.remove(os.path.join(d, old[:-4] + ext))
+                except OSError:
+                    pass
+    except OSError as e:
+        log("save clip failed:", e)
+
+
+def clean_transcript(text: str) -> str:
+    """Drop Whisper's repetition loops ("I'm tired. I'm tired. I'm tired.")."""
+    parts = [p.strip() for p in re.split(r"(?<=[.!?])\s+", text) if p.strip()]
+    out: list[str] = []
+    for p in parts:
+        if not out or p.lower().strip(".!? ") != out[-1].lower().strip(".!? "):
+            out.append(p)
+    return " ".join(out)
+
+
 def plain_text(text: str) -> str:
     """Remove markdown and symbols that a voice would read out ("asterisk")."""
     t = re.sub(r"^\s*(?:[-*+•]|\d+[.)])\s+", "", text, flags=re.M)  # list bullets
@@ -140,6 +247,8 @@ class Voice:
         self.loud_blocks = 0
         self.noise_floor = None
         self.last_level = 0.0
+        self.ducker = Ducker(os.path.dirname(os.path.abspath(models_dir)))
+        self.ducker.restore_after_crash()
 
     # ---------- models ----------
 
@@ -276,6 +385,7 @@ class Voice:
             # drop audio captured before this moment (e.g. Elise's greeting)
             while not self.audio.empty():
                 self.audio.get_nowait()
+        threading.Thread(target=self.ducker.duck, daemon=True).start()
         threading.Thread(target=self.ensure_whisper, daemon=True).start()
         emit(evt="listening")
 
@@ -288,6 +398,7 @@ class Voice:
             heard = self.speech_started
             self.mode = "transcribing" if heard and buf else ("wake" if self.wake_on else "idle")
         emit(evt="level", v=0)
+        self.ducker.restore()
         log("finish requested; speech heard:", heard)
         if heard and buf:
             threading.Thread(target=self.transcribe, args=(np.concatenate(buf),), daemon=True).start()
@@ -297,6 +408,9 @@ class Voice:
             emit(evt="final", text="")
 
     def cancel(self):
+        if self.mode == "record":
+            log(f"recording cancelled after {time.time() - self.rec_started:.1f}s")
+        self.ducker.restore()
         with self.lock:
             self.mode = "wake" if self.wake_on else "idle"
             self.rec_buf = []
@@ -362,6 +476,10 @@ class Voice:
         if len(rest.split()) < 2:
             rest = ""
         log("verify:", repr(heard), "->", ok, "| command:", repr(rest))
+        if ok:
+            # She's been called: turn other apps down so the command is heard.
+            threading.Thread(target=self.ducker.duck, daemon=True).start()
+            save_clip(self.models_dir, "wake", clip, heard)
         with self.lock:
             if self.mode != "verifying":
                 return
@@ -425,6 +543,7 @@ class Voice:
             log(f"recording ended after {elapsed:.1f}s ({'silence' if elapsed <= MAX_COMMAND_S else 'max length'})")
         if not self.speech_started and elapsed > NO_SPEECH_TIMEOUT_S:
             log(f"no speech heard in {NO_SPEECH_TIMEOUT_S}s (last rms {rms:.0f}, threshold {thr:.0f}, noise floor {self.noise_floor:.0f})")
+            self.ducker.restore()
             with self.lock:
                 self.mode = "wake" if self.wake_on else "idle"
                 self.sync_stream()
@@ -436,6 +555,7 @@ class Voice:
             self.rec_buf = []
             with self.lock:
                 self.mode = "transcribing"
+            self.ducker.restore()
             emit(evt="level", v=0)
             threading.Thread(target=self.transcribe, args=(audio,), daemon=True).start()
 
@@ -444,8 +564,14 @@ class Voice:
         try:
             model = self.ensure_whisper()
             f32 = audio.astype(np.float32) / 32768.0
-            segments, _ = model.transcribe(f32, language="en", beam_size=1, initial_prompt=PROMPT, condition_on_previous_text=False)
-            text = " ".join(s.text.strip() for s in segments).strip()
+            # vad_filter cuts the silent/noisy stretches Whisper otherwise
+            # "hears" sentences in.
+            segments, _ = model.transcribe(
+                f32, language="en", beam_size=1, initial_prompt=PROMPT, condition_on_previous_text=False, vad_filter=True
+            )
+            text = clean_transcript(" ".join(s.text.strip() for s in segments).strip())
+            log(f"heard ({len(audio) / SR:.1f}s):", repr(text))
+            save_clip(self.models_dir, "command", audio, text)
             if self.strip_name:
                 m = NAME_RE.search(text)
                 if m and m.start() <= 12:  # "Elise," / "Hey Elise," at the start
@@ -616,6 +742,7 @@ def stdin_reader(v: Voice, spk: Speaker):
         elif cmd == "shutdown":
             break
     # stdin closed: the app is gone.
+    v.ducker.restore()
     v.close_stream()
     os._exit(0)
 

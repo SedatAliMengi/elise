@@ -11,7 +11,7 @@ Elise lives in the Windows tray. Say her name or press <kbd>Ctrl</kbd>+<kbd>Alt<
 ## Features
 
 - **Natural-language commands**: add, move, rename, cancel and ask about events ("push the project meeting an hour later", "what do I have tomorrow?", "yarınki toplantıyı iptal et").
-- **Voice, fully offline**: the wake word ("Elise" / "Hey Elise") and speech-to-text run on your PC. No audio ever leaves the machine. Saying the command in one breath ("Elise, cancel lunch with Ali") skips the greeting. She waits for natural pauses (2.5 s of silence) before acting, and never listens to herself while speaking.
+- **Voice, fully offline**: the wake word ("Elise" / "Hey Elise") and speech-to-text run on your PC. No audio ever leaves the machine. Saying the command in one breath ("Elise, cancel lunch with Ali") skips the greeting. She waits for natural pauses (2.5 s of silence) before acting, and never listens to herself while speaking. While you give a command, other apps (games, videos) are turned down so they don't drown you out.
 - **Hands-free conversation**: after each command she asks "Anything else?" and keeps listening. Answer with another command, or "no" / "that's all" / "hayır" to send her away.
 - **Reminders that come to you**: the eye appears with the reminder and reads it out (offline neural voice), with snooze. Missed reminders show up when the PC wakes.
 - **A real calendar UI**: year, month, week and day views, drag-and-drop, repeating events (with "this / following / all" edits), search, undo for every command.

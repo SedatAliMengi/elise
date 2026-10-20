@@ -3,3 +3,4 @@ sounddevice
 numpy
 faster-whisper
 kokoro-onnx
+pycaw
