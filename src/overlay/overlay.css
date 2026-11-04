@@ -21,6 +21,12 @@
   height: 250px;
   display: grid;
   place-items: center;
+  /* The box is bigger than the eye and overlaps the bottom of the reminder card
+     and command box: let clicks through to their buttons. Only the eye catches them. */
+  pointer-events: none;
+}
+.overlay__eye .eye {
+  pointer-events: auto;
 }
 
 .overlay__stack {
