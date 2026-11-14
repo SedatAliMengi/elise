@@ -276,6 +276,7 @@ export default function CalendarApp() {
           switchView("day");
           break;
         case "l":
+          e.preventDefault(); // or the "l" lands in the checklist's input box
           setChecklistYear(new Date().getFullYear());
           break;
         case "/":
