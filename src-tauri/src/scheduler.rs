@@ -128,6 +128,9 @@ fn tick(app: &AppHandle) -> Result<StdDuration, String> {
         let s = state.settings.lock().unwrap();
         recur::parse_hhmm(&s.default_reminder_time).unwrap_or(NaiveTime::from_hms_opt(9, 0, 0).unwrap())
     };
+    if let Err(e) = crate::checklist::check_year_end(app, default_time) {
+        eprintln!("year-end checklist: {e}");
+    }
     let n = now();
     let (due, next) = {
         let db = state.db.lock().unwrap();

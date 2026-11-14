@@ -1157,3 +1157,147 @@ select.input option {
 .voice-status {
   margin: -2px 0 6px;
 }
+
+/* ---------------- yearly checklist ---------------- */
+
+.checklist {
+  width: 520px;
+  max-height: calc(100% - 60px);
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 18px;
+}
+.checklist__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 18px 4px 22px;
+}
+.checklist__years {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: -8px;
+}
+.checklist__year {
+  margin: 0;
+  min-width: 92px;
+  text-align: center;
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-weight: 600;
+  font-size: 34px;
+  letter-spacing: 0.04em;
+  color: var(--text);
+  text-shadow: 0 0 18px rgba(180, 76, 255, 0.35);
+}
+.checklist__sub {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 2px 22px 12px;
+  color: var(--text-dim);
+  font-size: 13px;
+}
+.checklist__bar {
+  flex: 1;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--surface-3);
+  overflow: hidden;
+}
+.checklist__fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--iris), var(--pupil));
+  box-shadow: 0 0 10px rgba(180, 76, 255, 0.5);
+}
+.checklist__note {
+  margin: 0 22px 10px;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--iris-soft);
+  color: var(--text-dim);
+  font-size: 12.5px;
+}
+.checklist__items {
+  list-style: none;
+  margin: 0;
+  padding: 0 14px;
+  overflow: auto;
+  min-height: 0;
+}
+.checklist__item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 8px;
+  border-radius: var(--radius-sm);
+}
+.checklist__item:hover {
+  background: var(--surface-2);
+}
+.checklist__check {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  border: 1.5px solid var(--border-strong);
+  background: transparent;
+  color: #fff;
+  font-size: 12px;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+  transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
+}
+.checklist__check:not(:disabled):hover {
+  border-color: var(--iris-glow);
+}
+.checklist__check.on {
+  background: var(--iris);
+  border-color: var(--iris-glow);
+  box-shadow: var(--glow-iris);
+}
+.checklist__text {
+  flex: 1;
+  min-width: 0;
+  font-size: 14.5px;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+.checklist__item.done .checklist__text {
+  color: var(--text-faint);
+  text-decoration: line-through;
+  text-decoration-color: rgba(180, 76, 255, 0.6);
+}
+.checklist__remove {
+  flex: none;
+  opacity: 0;
+  border: none;
+  background: none;
+  color: var(--text-faint);
+  font-size: 12px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  transition: opacity 0.15s, color 0.15s;
+}
+.checklist__item:hover .checklist__remove,
+.checklist__remove:focus-visible {
+  opacity: 1;
+}
+.checklist__remove:hover {
+  color: var(--pupil-glow);
+}
+.checklist__add {
+  display: flex;
+  gap: 8px;
+  padding: 12px 22px 0;
+}
+.checklist__add .input {
+  flex: 1;
+  min-width: 0;
+}
+.checklist__err {
+  margin: 10px 22px 0;
+}

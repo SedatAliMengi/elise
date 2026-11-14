@@ -16,6 +16,7 @@ interface Props {
   onJump: (d: Date) => void;
   onNew: () => void;
   onSettings: () => void;
+  onChecklist: () => void;
   onOpenEvent: (e: CalEvent) => void;
   searchRef: React.RefObject<HTMLInputElement | null>;
 }
@@ -69,6 +70,12 @@ export default function Toolbar(p: Props) {
             </button>
           ))}
         </div>
+        <button className="btn icon ghost" onClick={p.onChecklist} title={`Yearly checklist (L)`}>
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9 6h11M9 12h11M9 18h11" />
+            <path d="M3.5 6l1.2 1.2L7 4.8M3.5 12l1.2 1.2L7 10.8M3.5 18l1.2 1.2L7 16.8" />
+          </svg>
+        </button>
         <button className="btn icon ghost" onClick={p.onSettings} title="Settings">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="12" cy="12" r="3" />

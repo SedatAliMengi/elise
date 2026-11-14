@@ -13,6 +13,8 @@ Tauri 2 (Rust) + React/TS/Vite. Single user ("Enigma"), local only.
   - `llm.rs` command engine: Claude Messages API via raw reqwest, model `claude-haiku-4-5`, client tools
     (create/update/delete/find_events, ask_clarification). Summary lines are built from real changes.
   - `overlay.rs` overlay window modes Hidden / Compact (hover eye) / Expanded; geometry in physical px.
+  - `checklist.rs` yearly checklist rules (this year: add/remove/tick; past: tick only; future: locked → `overlay::show_oracle`)
+    and the year-end prompt (Dec 31 from the default reminder time, once per year via `meta` table; missed → first week of Jan).
   - `tray.rs`, `settings.rs` (JSON settings + API key in Windows Credential Manager via `keyring`).
   - `lib.rs` AppState, Tauri commands, setup.
 - `src/` — `main.tsx` routes `?window=overlay` to `overlay/OverlayApp`, else `calendar/CalendarApp`.

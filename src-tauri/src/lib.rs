@@ -1,3 +1,4 @@
+mod checklist;
 mod db;
 mod events;
 mod llm;
@@ -40,6 +41,7 @@ pub struct AppState {
     pub sched: Mutex<Option<Sender<()>>>,
     pub overlay_mode: Mutex<Mode>,
     pub pending_reminders: Mutex<Vec<ReminderPayload>>,
+    pub pending_year_prompt: Mutex<Option<checklist::YearPrompt>>,
     pub tray: Mutex<Option<tray::TrayChecks>>,
     pub sessions: Mutex<HashMap<String, llm::Session>>,
     pub move_counter: AtomicU64,
@@ -313,6 +315,60 @@ fn reminder_toast(app: AppHandle, title: String, body: String) {
     let _ = app.notification().builder().title(title).body(body).show();
 }
 
+// ---------------- commands: yearly checklist ----------------
+
+#[tauri::command]
+fn checklist_get(state: tauri::State<AppState>, year: i32) -> CmdResult<checklist::ChecklistView> {
+    checklist::view(&state.db.lock().unwrap(), year, checklist::current_year())
+}
+
+#[tauri::command]
+fn checklist_years(state: tauri::State<AppState>) -> CmdResult<Vec<i32>> {
+    let mut years = state.db.lock().unwrap().checklist_years()?;
+    let cur = checklist::current_year();
+    years.retain(|y| *y <= cur);
+    if !years.contains(&cur) {
+        years.insert(0, cur);
+    }
+    Ok(years)
+}
+
+#[tauri::command]
+fn checklist_add(app: AppHandle, state: tauri::State<AppState>, year: i32, text: String) -> CmdResult<checklist::ChecklistItem> {
+    let item = checklist::add(&state.db.lock().unwrap(), year, &text, checklist::current_year())?;
+    let _ = app.emit("checklist-changed", year);
+    Ok(item)
+}
+
+#[tauri::command]
+fn checklist_set_done(app: AppHandle, state: tauri::State<AppState>, id: String, done: bool) -> CmdResult<()> {
+    checklist::set_done(&state.db.lock().unwrap(), &id, done, checklist::current_year())?;
+    let _ = app.emit("checklist-changed", ());
+    Ok(())
+}
+
+#[tauri::command]
+fn checklist_remove(app: AppHandle, state: tauri::State<AppState>, id: String) -> CmdResult<()> {
+    checklist::remove(&state.db.lock().unwrap(), &id, checklist::current_year())?;
+    let _ = app.emit("checklist-changed", ());
+    Ok(())
+}
+
+#[tauri::command]
+fn checklist_open(app: AppHandle, year: i32) {
+    checklist::open(&app, year);
+}
+
+#[tauri::command]
+fn take_year_prompt(state: tauri::State<AppState>) -> Option<checklist::YearPrompt> {
+    state.pending_year_prompt.lock().unwrap().take()
+}
+
+#[tauri::command]
+fn oracle_show(app: AppHandle) {
+    overlay::show_oracle(&app);
+}
+
 // ---------------- commands: voice ----------------
 
 #[tauri::command]
@@ -400,6 +456,7 @@ pub fn run() {
             sched: Mutex::new(None),
             overlay_mode: Mutex::new(Mode::Hidden),
             pending_reminders: Mutex::new(vec![]),
+            pending_year_prompt: Mutex::new(None),
             tray: Mutex::new(None),
             sessions: Mutex::new(HashMap::new()),
             move_counter: AtomicU64::new(0),
@@ -494,6 +551,14 @@ pub fn run() {
             take_reminders,
             reminder_action,
             reminder_toast,
+            checklist_get,
+            checklist_years,
+            checklist_add,
+            checklist_set_done,
+            checklist_remove,
+            checklist_open,
+            take_year_prompt,
+            oracle_show,
             voice_listen,
             voice_cancel,
             voice_finish,

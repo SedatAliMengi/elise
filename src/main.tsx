@@ -4,6 +4,8 @@ import "@fontsource/outfit/300.css";
 import "@fontsource/outfit/400.css";
 import "@fontsource/outfit/500.css";
 import "@fontsource/outfit/600.css";
+import "@fontsource/cormorant-garamond/500-italic.css";
+import "@fontsource/cormorant-garamond/600.css";
 import ReactDOM from "react-dom/client";
 import CalendarApp from "./calendar/CalendarApp";
 import OverlayApp from "./overlay/OverlayApp";

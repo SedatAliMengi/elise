@@ -37,6 +37,17 @@
   const which = new URLSearchParams(location.search).get("window") || "main";
   const SETTINGS = { userName: "Enigma", voiceResponses: false, voiceRate: 1, wakeWord: true, hotkey: "Ctrl+Alt+E", hoverMode: false,
     hoverPos: null, autostart: true, defaultReminderTime: "09:00", defaultEventMinutes: 60, weekStartsMonday: true, time24h: true };
+  const params = new URLSearchParams(location.search);
+  const CUR = today.getFullYear();
+  const LIST = [
+    { id: "c1", year: CUR, text: "Run a half marathon", done: true, doneAt: null },
+    { id: "c2", year: CUR, text: "Visit Japan", done: false, doneAt: null },
+    { id: "c3", year: CUR, text: "Read 20 books", done: true, doneAt: null },
+    { id: "c4", year: CUR, text: "Learn to cook five proper dishes", done: false, doneAt: null },
+    { id: "p1", year: CUR - 1, text: "Get my driving licence", done: true, doneAt: null },
+    { id: "p2", year: CUR - 1, text: "Move to a bigger flat", done: false, doneAt: null },
+  ];
+  window.__calls = [];
   let nextCb = 1;
   window.__TAURI_INTERNALS__ = {
     metadata: { currentWindow: { label: which }, currentWebview: { label: which, windowLabel: which } },
@@ -50,14 +61,23 @@
         case "voice_status": return { available: true, message: "" };
         case "is_calendar_visible": return true;
         case "stage_is_on": return which === "stage";
-        case "overlay_get_mode": return "expanded";
-        case "take_reminders": return which === "overlay" ? [{ reminderId: "r1", occKey: "x", eventId: "dentist", title: "Dentist",
+        case "overlay_get_mode": return params.get("mode") || "expanded";
+        case "take_reminders": return which === "overlay" && !params.get("prompt") && !params.get("mode") ? [{ reminderId: "r1", occKey: "x", eventId: "dentist", title: "Dentist",
           start: OCC[2].start, allDay: false, location: "Dr. Kaya's clinic", missed: false }] : [];
         case "run_command":
           await new Promise((r) => setTimeout(r, 900));
           return { kind: "done", message: "Understood.", historyId: "h1",
             summary: ["Added: Dinner with Sarah · Sat 20:00 · reminders: 1h before"] };
         case "voice_speak": return false;
+        case "checklist_get":
+          if (args.year > CUR) throw "future";
+          return { year: args.year, currentYear: CUR, items: LIST.filter((i) => i.year === args.year), canEdit: args.year === CUR, canTick: true };
+        case "checklist_years": return [CUR, CUR - 1];
+        case "checklist_add": { const it = { id: "n" + Date.now(), year: args.year, text: args.text, done: false, doneAt: null }; LIST.push(it); return it; }
+        case "checklist_set_done": LIST.find((i) => i.id === args.id).done = args.done; return null;
+        case "checklist_remove": LIST.splice(LIST.findIndex((i) => i.id === args.id), 1); return null;
+        case "oracle_show": window.__calls.push("oracle_show"); return null;
+        case "take_year_prompt": return params.get("prompt") ? { year: CUR, missed: false } : null;
         case "plugin:event|listen": return nextCb++;
         default: return null;
       }

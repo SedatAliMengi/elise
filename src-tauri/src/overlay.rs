@@ -3,6 +3,7 @@
 //!  - Hidden
 //!  - Compact  (hover mode: just the small draggable eye)
 //!  - Expanded (eye + speech bubble + command box / reminder card)
+//!  - Center   (eye + a line of text in the middle of the main screen; not full screen)
 
 use std::sync::atomic::Ordering;
 
@@ -16,6 +17,7 @@ pub const LABEL: &str = "overlay";
 /// Logical sizes.
 const COMPACT: (f64, f64) = (156.0, 130.0);
 const EXPANDED: (f64, f64) = (520.0, 540.0);
+const CENTER: (f64, f64) = (760.0, 560.0);
 /// The eye (and its summoning circle) sits centred in this box, bottom-right of the expanded window.
 const EYE_BOX: (f64, f64) = (260.0, 250.0);
 const MARGIN: f64 = 12.0;
@@ -26,6 +28,7 @@ pub enum Mode {
     Hidden,
     Compact,
     Expanded,
+    Center,
 }
 
 fn win(app: &AppHandle) -> Option<WebviewWindow> {
@@ -81,6 +84,11 @@ pub fn set_mode(app: &AppHandle, mode: Mode) {
 
     let (w_px, h_px, x, y) = match mode {
         Mode::Compact => (cw, ch, cx, cy),
+        Mode::Center => {
+            let (px, py, pw, ph, ps) = work_area(app, None);
+            let (w, h) = ((CENTER.0 * ps) as i32, (CENTER.1 * ps) as i32);
+            (w, h, px + (pw - w) / 2, py + (ph - h) / 2)
+        }
         _ => {
             let (ew, eh) = ((EXPANDED.0 * scale) as i32, (EXPANDED.1 * scale) as i32);
             let (bw, bh) = ((EYE_BOX.0 * scale) as i32, (EYE_BOX.1 * scale) as i32);
@@ -120,6 +128,22 @@ pub fn summon(app: &AppHandle, source: &str) {
         }
     }
     let _ = app.emit_to(LABEL, "summon", source);
+}
+
+/// "Even a godlike being cannot touch the thread of time…": Elise in the middle
+/// of the screen, when a future year's checklist is asked for.
+pub fn show_oracle(app: &AppHandle) {
+    set_mode(app, Mode::Center);
+    let _ = app.emit_to(LABEL, "oracle", ());
+}
+
+/// The last day of the year: "Time to check your checklist". The payload waits
+/// in AppState so a page that's still loading can pull it.
+pub fn show_year_prompt(app: &AppHandle) {
+    if mode(app) != Mode::Expanded {
+        set_mode(app, Mode::Expanded);
+    }
+    let _ = app.emit_to(LABEL, "year-prompt", ());
 }
 
 pub fn show_reminder(app: &AppHandle, payload: ReminderPayload) {

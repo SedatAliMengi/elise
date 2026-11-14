@@ -5,10 +5,13 @@ import type {
   CommandResult,
   Occurrence,
   OverlayMode,
+  ChecklistItem,
+  ChecklistView,
   ReminderPayload,
   Scope,
   Settings,
   VoiceStatus,
+  YearPrompt,
 } from "./types";
 
 export const api = {
@@ -41,6 +44,15 @@ export const api = {
   reminderAction: (p: ReminderPayload, action: "dismiss" | "snooze", minutes?: number) =>
     invoke<void>("reminder_action", { reminderId: p.reminderId, occKey: p.occKey, action, minutes: minutes ?? null }),
   reminderToast: (title: string, body: string) => invoke<void>("reminder_toast", { title, body }),
+  /** Rejects with "future" for a year that hasn't come yet. */
+  checklistGet: (year: number) => invoke<ChecklistView>("checklist_get", { year }),
+  checklistYears: () => invoke<number[]>("checklist_years"),
+  checklistAdd: (year: number, text: string) => invoke<ChecklistItem>("checklist_add", { year, text }),
+  checklistSetDone: (id: string, done: boolean) => invoke<void>("checklist_set_done", { id, done }),
+  checklistRemove: (id: string) => invoke<void>("checklist_remove", { id }),
+  checklistOpen: (year: number) => invoke<void>("checklist_open", { year }),
+  takeYearPrompt: () => invoke<YearPrompt | null>("take_year_prompt"),
+  oracleShow: () => invoke<void>("oracle_show"),
   voiceListen: () => invoke<void>("voice_listen"),
   voiceCancel: (why = "") => invoke<void>("voice_cancel", { why }),
   voiceFinish: () => invoke<void>("voice_finish"),

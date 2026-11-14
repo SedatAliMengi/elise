@@ -14,6 +14,7 @@ Elise lives in the Windows tray. Say her name or press <kbd>Ctrl</kbd>+<kbd>Alt<
 - **Voice, fully offline**: the wake word ("Elise" / "Hey Elise") and speech-to-text run on your PC. No audio ever leaves the machine. Saying the command in one breath ("Elise, cancel lunch with Ali") skips the greeting. She waits for natural pauses (2.5 s of silence) before acting, and never listens to herself while speaking. While you give a command, other apps (games, videos) are turned down so they don't drown you out.
 - **Hands-free conversation**: after each command she asks "Anything else?" and keeps listening. Answer with another command, or "no" / "that's all" / "hayır" to send her away.
 - **Reminders that come to you**: the eye appears with the reminder and reads it out (offline neural voice), with snooze. Missed reminders show up when the PC wakes.
+- **Yearly checklist**: one list per year (toolbar button or <kbd>L</kbd>). On the last day of the year Elise appears with "Time to check your checklist" and a button straight to it. Past years can be read and ticked; future years stay locked until they arrive.
 - **A real calendar UI**: year, month, week and day views, drag-and-drop, repeating events (with "this / following / all" edits), search, undo for every command.
 - **Built for a gaming PC**: starts with Windows, ~0% CPU while idle, the eye works over borderless games, and a "big eye on screen" mode.
 

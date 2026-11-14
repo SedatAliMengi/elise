@@ -9,9 +9,11 @@ import SummonCircle, { type RitualPhase } from "../components/SummonCircle";
 import { api, on } from "../lib/api";
 import { fmtTime, fmtUntil, fromNaive, spokenTime } from "../lib/dates";
 import { speak } from "../lib/speech";
-import type { EyeState, OverlayMode, ReminderPayload } from "../lib/types";
+import type { EyeState, OverlayMode, ReminderPayload, YearPrompt } from "../lib/types";
 import { useSettings, voiceOpts } from "../lib/useSettings";
+import Oracle from "./Oracle";
 import ReminderCard from "./ReminderCard";
+import YearPromptCard from "./YearPromptCard";
 import "./overlay.css";
 
 interface Session {
@@ -23,6 +25,7 @@ interface Session {
 
 const VANISH_MS = 560;
 const REMINDER_TIMEOUT_MS = 30_000;
+const YEAR_PROMPT_TIMEOUT_MS = 60_000;
 
 export default function OverlayApp() {
   const settings = useSettings();
@@ -30,6 +33,10 @@ export default function OverlayApp() {
   const [eye, setEye] = useState<EyeState>("closed");
   const [session, setSession] = useState<Session | null>(null);
   const [queue, setQueue] = useState<ReminderPayload[]>([]);
+  const [yearPrompt, setYearPrompt] = useState<YearPrompt | null>(null);
+  const [oracleKey, setOracleKey] = useState(0);
+  const yearPromptRef = useRef(yearPrompt);
+  yearPromptRef.current = yearPrompt;
   const [level, setLevel] = useState(0);
   const [ritual, setRitual] = useState<RitualPhase>("off");
   const [ritualKey, setRitualKey] = useState(0);
@@ -57,12 +64,18 @@ export default function OverlayApp() {
     }
   }, []);
 
+  const pullYearPrompt = useCallback(async () => {
+    const p = await api.takeYearPrompt();
+    if (p) setYearPrompt(p);
+  }, []);
+
   useEffect(() => {
     api.overlayMode().then((m) => {
       setMode(m);
       if (m === "compact") setEye("idle");
     });
     pullReminders();
+    pullYearPrompt();
     const offs = [
       on<OverlayMode>("overlay-mode", (m) => {
         setMode(m);
@@ -78,11 +91,17 @@ export default function OverlayApp() {
         startSession(!direct, source.startsWith("voice"), direct);
       }),
       on("reminder", () => pullReminders()),
+      on("year-prompt", () => pullYearPrompt()),
+      on("oracle", () => {
+        vanishing.current = false;
+        setEye("appearing");
+        setOracleKey((k) => k + 1);
+      }),
     ];
     return () => {
       offs.forEach((f) => f());
     };
-  }, [pullReminders, startSession]);
+  }, [pullReminders, pullYearPrompt, startSession]);
 
   /** Play a ritual phase for `ms`, then settle back (faint ring while thinking). */
   const playRitual = useCallback((p: RitualPhase, ms: number) => {
@@ -102,7 +121,7 @@ export default function OverlayApp() {
 
   // Show the eye opening whenever the window expands from nothing.
   useEffect(() => {
-    if (mode === "expanded" && eye === "closed") setEye("appearing");
+    if ((mode === "expanded" || mode === "center") && eye === "closed") setEye("appearing");
   }, [mode, eye]);
 
   /** Everything is finished: close the eye, then hide/collapse the window. */
@@ -120,6 +139,31 @@ export default function OverlayApp() {
   }, [settings.hoverMode]);
 
   const current = !session ? queue[0] : undefined;
+  const showYearPrompt = !session && !current ? yearPrompt : null;
+
+  // End of the year: say it once, leave a Windows notification if ignored.
+  useEffect(() => {
+    if (!showYearPrompt) return;
+    if (eye === "closed" || eye === "vanishing") setEye("appearing");
+    vanishing.current = false;
+    const { year, missed } = showYearPrompt;
+    const name = settings.userName || "Enigma";
+    speak(
+      missed ? `${year} has ended, ${name}. Time to check your ${year} checklist.` : `It's the last day of ${year}, ${name}. Time to check your ${year} checklist.`,
+      voiceOpts(settings),
+    );
+    const t = window.setTimeout(() => {
+      api.reminderToast("Elise", `Time to check your ${year} checklist. It's in the calendar, next to Settings.`);
+      closeYearPrompt();
+    }, YEAR_PROMPT_TIMEOUT_MS);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showYearPrompt?.year]);
+
+  const closeYearPrompt = () => {
+    setYearPrompt(null);
+    if (!queueRef.current.length) wrapUp();
+  };
 
   // Speak each reminder as it comes up; turn it into a toast if ignored.
   useEffect(() => {
@@ -141,13 +185,13 @@ export default function OverlayApp() {
     if (head) api.reminderAction(head, action, minutes).catch(() => {});
     queueRef.current = rest;
     setQueue(rest);
-    if (!rest.length) wrapUp();
+    if (!rest.length && !yearPromptRef.current) wrapUp();
   };
 
   const onPanelFinish = useCallback(() => {
     setSession(null);
     // Pending reminders get their turn before the eye leaves.
-    if (!queueRef.current.length) wrapUp();
+    if (!queueRef.current.length && !yearPromptRef.current) wrapUp();
   }, [wrapUp]);
 
   // ----- compact (hover) eye: click vs drag -----
@@ -199,7 +243,27 @@ export default function OverlayApp() {
 
   if (mode === "hidden") return null;
 
-  if (mode === "compact" && !session && !current) {
+  if (mode === "center") {
+    return (
+      <Oracle
+        key={oracleKey}
+        eye={eye}
+        onEye={setEye}
+        settings={settings}
+        onDone={() => {
+          vanishing.current = true;
+          setEye("vanishing");
+          window.setTimeout(() => {
+            api.overlayDone();
+            vanishing.current = false;
+            setEye(settings.hoverMode ? "idle" : "closed");
+          }, VANISH_MS);
+        }}
+      />
+    );
+  }
+
+  if (mode === "compact" && !session && !current && !showYearPrompt) {
     return (
       <div className="overlay overlay--compact">
         <Eye state={eye === "closed" ? "appearing" : eye} size={140} dim onMouseDown={onEyeMouseDown} onContextMenu={onEyeContext} title="Elise — click to command, drag to move" />
@@ -222,6 +286,17 @@ export default function OverlayApp() {
               onEyeState={setEye}
               onLevel={setLevel}
               onFinish={onPanelFinish}
+            />
+          )}
+          {showYearPrompt && (
+            <YearPromptCard
+              key={`year-${showYearPrompt.year}`}
+              prompt={showYearPrompt}
+              onOpen={() => {
+                api.checklistOpen(showYearPrompt.year);
+                closeYearPrompt();
+              }}
+              onLater={closeYearPrompt}
             />
           )}
           {!session && current && (

@@ -78,7 +78,32 @@ export interface ReminderPayload {
   missed: boolean;
 }
 
-export type OverlayMode = "hidden" | "compact" | "expanded";
+export type OverlayMode = "hidden" | "compact" | "expanded" | "center";
+
+export interface ChecklistItem {
+  id: string;
+  year: number;
+  text: string;
+  done: boolean;
+  doneAt: string | null;
+}
+
+export interface ChecklistView {
+  year: number;
+  currentYear: number;
+  items: ChecklistItem[];
+  /** Add/remove: only the current year. */
+  canEdit: boolean;
+  /** Tick off: current and past years. */
+  canTick: boolean;
+}
+
+/** Last day of the year: "Time to check your checklist". */
+export interface YearPrompt {
+  year: number;
+  /** The PC was off on Dec 31; shown in early January instead. */
+  missed: boolean;
+}
 
 export type EyeState = "appearing" | "idle" | "listening" | "thinking" | "speaking" | "error" | "vanishing" | "closed";
 

@@ -6,6 +6,7 @@ use std::path::Path;
 use chrono::{Local, NaiveDateTime};
 use rusqlite::{params, Connection, OptionalExtension};
 
+use crate::checklist::ChecklistItem;
 use crate::model::{Change, Event, Reminder};
 
 pub type DbResult<T> = Result<T, String>;
@@ -78,6 +79,20 @@ impl Db {
                 created_at TEXT NOT NULL,
                 changes TEXT NOT NULL,
                 undone INTEGER NOT NULL DEFAULT 0
+            );
+            CREATE TABLE IF NOT EXISTS checklist_items (
+                id TEXT PRIMARY KEY,
+                year INTEGER NOT NULL,
+                text TEXT NOT NULL,
+                done INTEGER NOT NULL DEFAULT 0,
+                position INTEGER NOT NULL,
+                created_at TEXT NOT NULL,
+                done_at TEXT
+            );
+            CREATE INDEX IF NOT EXISTS checklist_year ON checklist_items(year, position);
+            CREATE TABLE IF NOT EXISTS meta (
+                key TEXT PRIMARY KEY,
+                value TEXT NOT NULL
             );
             "#,
         )
@@ -334,6 +349,85 @@ impl Db {
         let changes: Vec<Change> = serde_json::from_str(&changes).map_err(e)?;
         self.revert(&changes)?;
         self.conn.execute("UPDATE command_history SET undone = 1 WHERE id = ?1", [id]).map_err(e)?;
+        Ok(())
+    }
+
+    // ---------- yearly checklist ----------
+
+    pub fn checklist(&self, year: i32) -> DbResult<Vec<ChecklistItem>> {
+        let mut stmt = self
+            .conn
+            .prepare_cached("SELECT id, year, text, done, done_at FROM checklist_items WHERE year = ?1 ORDER BY position, created_at")
+            .map_err(e)?;
+        let rows = stmt
+            .query_map([year], |r| {
+                Ok(ChecklistItem {
+                    id: r.get(0)?,
+                    year: r.get(1)?,
+                    text: r.get(2)?,
+                    done: r.get::<_, i64>(3)? != 0,
+                    done_at: r.get(4)?,
+                })
+            })
+            .map_err(e)?;
+        rows.collect::<Result<_, _>>().map_err(e)
+    }
+
+    pub fn checklist_item(&self, id: &str) -> DbResult<Option<ChecklistItem>> {
+        let year: Option<i32> = self
+            .conn
+            .query_row("SELECT year FROM checklist_items WHERE id = ?1", [id], |r| r.get(0))
+            .optional()
+            .map_err(e)?;
+        Ok(match year {
+            Some(y) => self.checklist(y)?.into_iter().find(|i| i.id == id),
+            None => None,
+        })
+    }
+
+    pub fn checklist_add(&self, year: i32, text: &str) -> DbResult<ChecklistItem> {
+        let id = uuid::Uuid::new_v4().to_string();
+        self.conn
+            .execute(
+                "INSERT INTO checklist_items (id, year, text, done, position, created_at)
+                 VALUES (?1, ?2, ?3, 0, (SELECT COALESCE(MAX(position), 0) + 1 FROM checklist_items WHERE year = ?2), ?4)",
+                params![id, year, text, now()],
+            )
+            .map_err(e)?;
+        Ok(ChecklistItem { id, year, text: text.to_string(), done: false, done_at: None })
+    }
+
+    pub fn checklist_set_done(&self, id: &str, done: bool) -> DbResult<()> {
+        let at = if done { Some(now()) } else { None };
+        self.conn
+            .execute("UPDATE checklist_items SET done = ?2, done_at = ?3 WHERE id = ?1", params![id, done as i64, at])
+            .map_err(e)?;
+        Ok(())
+    }
+
+    pub fn checklist_remove(&self, id: &str) -> DbResult<()> {
+        self.conn.execute("DELETE FROM checklist_items WHERE id = ?1", [id]).map_err(e)?;
+        Ok(())
+    }
+
+    /// Years that have at least one item, newest first.
+    pub fn checklist_years(&self) -> DbResult<Vec<i32>> {
+        let mut stmt = self.conn.prepare_cached("SELECT DISTINCT year FROM checklist_items ORDER BY year DESC").map_err(e)?;
+        let rows = stmt.query_map([], |r| r.get(0)).map_err(e)?;
+        rows.collect::<Result<_, _>>().map_err(e)
+    }
+
+    pub fn meta_get(&self, key: &str) -> DbResult<Option<String>> {
+        self.conn
+            .query_row("SELECT value FROM meta WHERE key = ?1", [key], |r| r.get(0))
+            .optional()
+            .map_err(e)
+    }
+
+    pub fn meta_set(&self, key: &str, value: &str) -> DbResult<()> {
+        self.conn
+            .execute("INSERT INTO meta (key, value) VALUES (?1, ?2) ON CONFLICT(key) DO UPDATE SET value = excluded.value", params![key, value])
+            .map_err(e)?;
         Ok(())
     }
 }

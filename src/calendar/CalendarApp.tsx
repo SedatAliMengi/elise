@@ -20,6 +20,7 @@ import DayAgenda from "./DayAgenda";
 import EventEditor, { type EditorTarget } from "./EventEditor";
 import MonthView from "./MonthView";
 import ScopeDialog from "./ScopeDialog";
+import ChecklistPanel from "./ChecklistPanel";
 import SettingsPanel from "./SettingsPanel";
 import TitleBar from "./TitleBar";
 import Toolbar from "./Toolbar";
@@ -45,6 +46,8 @@ export default function CalendarApp() {
   const [version, setVersion] = useState(0);
   const [editor, setEditor] = useState<EditorTarget | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  /** Year whose checklist is open, or null. */
+  const [checklistYear, setChecklistYear] = useState<number | null>(null);
   const [scopeReq, setScopeReq] = useState<ScopeReq | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
@@ -100,7 +103,15 @@ export default function CalendarApp() {
   }, [selected, version]);
 
   useEffect(() => {
-    const offs = [on("events-changed", () => setVersion((v) => v + 1)), on("open-settings", () => setSettingsOpen(true))];
+    const offs = [
+      on("events-changed", () => setVersion((v) => v + 1)),
+      on("open-settings", () => setSettingsOpen(true)),
+      // Tray, or Elise's end-of-year prompt: "Open checklist".
+      on<number>("open-checklist", (y) => {
+        setSettingsOpen(false);
+        setChecklistYear(y);
+      }),
+    ];
     // Refresh "today" markers when the window comes back after midnight.
     const onFocus = () => setVersion((v) => v + 1);
     window.addEventListener("focus", onFocus);
@@ -232,7 +243,7 @@ export default function CalendarApp() {
   useEffect(() => {
     const k = (e: KeyboardEvent) => {
       const el = e.target as HTMLElement;
-      if (el.closest("input, textarea, select, [contenteditable]") || editor || settingsOpen || scopeReq) return;
+      if (el.closest("input, textarea, select, [contenteditable]") || editor || settingsOpen || scopeReq || checklistYear !== null) return;
       if (e.ctrlKey && e.key.toLowerCase() === "f") {
         e.preventDefault();
         searchRef.current?.focus();
@@ -264,6 +275,9 @@ export default function CalendarApp() {
         case "d":
           switchView("day");
           break;
+        case "l":
+          setChecklistYear(new Date().getFullYear());
+          break;
         case "/":
           e.preventDefault();
           searchRef.current?.focus();
@@ -290,6 +304,7 @@ export default function CalendarApp() {
         onJump={(d) => goTo(d, view === "year" ? "month" : view === "day" || view === "week" ? view : undefined)}
         onNew={() => create()}
         onSettings={() => setSettingsOpen(true)}
+        onChecklist={() => setChecklistYear(new Date().getFullYear())}
         onOpenEvent={openEvent}
         searchRef={searchRef}
       />
@@ -379,6 +394,9 @@ export default function CalendarApp() {
         )}
       </AnimatePresence>
       <AnimatePresence>{settingsOpen && <SettingsPanel settings={settings} onClose={() => setSettingsOpen(false)} />}</AnimatePresence>
+      <AnimatePresence>
+        {checklistYear !== null && <ChecklistPanel year={checklistYear} onYear={setChecklistYear} onClose={() => setChecklistYear(null)} />}
+      </AnimatePresence>
       <AnimatePresence>
         {scopeReq && (
           <ScopeDialog
