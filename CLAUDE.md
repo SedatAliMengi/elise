@@ -44,3 +44,9 @@ Tauri 2 (Rust) + React/TS/Vite. Single user ("Enigma"), local only.
   and rerun `npm run tauri dev`.
 - WebView2 never reports hidden windows via `document.hidden`; the backend emits `main-visible` and
   suspends the hidden calendar (`webview.rs`). Don't rely on the Page Visibility API.
+
+## Project notes (Obsidian vault)
+Elise's vault is `C:\Users\Sedat\Desktop\Files\Obsidian Vaults\Elise` (Changelog, Bug Log, Open Issues,
+Troubleshooting, Voice Engine, ...). **At the end of every session that changes something, update
+`Current Situation.md` there** (keep its headings; plain `- ` bullets with indented details; never delete
+anything in **Planned**; set `updated:` to today), and add new bugs to `Bug Log.md` / entries to `Changelog.md`.
