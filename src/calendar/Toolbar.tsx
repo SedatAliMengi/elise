@@ -17,6 +17,7 @@ interface Props {
   onNew: () => void;
   onSettings: () => void;
   onChecklist: () => void;
+  onProjects: () => void;
   onOpenEvent: (e: CalEvent) => void;
   searchRef: React.RefObject<HTMLInputElement | null>;
 }
@@ -59,6 +60,18 @@ export default function Toolbar(p: Props) {
           </AnimatePresence>
         </div>
       </div>
+
+      <button className="btn toolbar__projects" onClick={p.onProjects} title="Projects (P)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="2.6" />
+            <circle cx="4.5" cy="5.5" r="1.6" />
+            <circle cx="19.5" cy="5.5" r="1.6" />
+            <circle cx="4.5" cy="18.5" r="1.6" />
+            <circle cx="19.5" cy="18.5" r="1.6" />
+            <path d="M10 10.3 5.8 6.7M14 10.3l4.2-3.6M10 13.7l-4.2 3.6M14 13.7l4.2 3.6" />
+          </svg>
+        Projects
+      </button>
 
       <div className="toolbar__right">
         <Search onOpen={p.onOpenEvent} inputRef={p.searchRef} />

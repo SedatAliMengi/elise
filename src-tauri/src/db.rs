@@ -8,6 +8,7 @@ use rusqlite::{params, Connection, OptionalExtension};
 
 use crate::checklist::ChecklistItem;
 use crate::model::{Change, Event, Reminder};
+use crate::projects::{Project, ProjectTask};
 
 pub type DbResult<T> = Result<T, String>;
 
@@ -90,6 +91,23 @@ impl Db {
                 done_at TEXT
             );
             CREATE INDEX IF NOT EXISTS checklist_year ON checklist_items(year, position);
+            CREATE TABLE IF NOT EXISTS projects (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                color TEXT NOT NULL,
+                position INTEGER NOT NULL,
+                created_at TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS project_tasks (
+                id TEXT PRIMARY KEY,
+                project_id TEXT NOT NULL,
+                text TEXT NOT NULL,
+                done INTEGER NOT NULL DEFAULT 0,
+                position INTEGER NOT NULL,
+                created_at TEXT NOT NULL,
+                done_at TEXT
+            );
+            CREATE INDEX IF NOT EXISTS project_tasks_list ON project_tasks(project_id, position);
             CREATE TABLE IF NOT EXISTS meta (
                 key TEXT PRIMARY KEY,
                 value TEXT NOT NULL
@@ -97,6 +115,11 @@ impl Db {
             "#,
         )
         .map_err(e)?;
+        // Added after the first Projects build: older databases lack the column.
+        let has_status = conn.prepare("SELECT status FROM projects LIMIT 0").is_ok();
+        if !has_status {
+            conn.execute("ALTER TABLE projects ADD COLUMN status TEXT", []).map_err(e)?;
+        }
         Ok(Self { conn })
     }
 
@@ -415,6 +438,117 @@ impl Db {
         let mut stmt = self.conn.prepare_cached("SELECT DISTINCT year FROM checklist_items ORDER BY year DESC").map_err(e)?;
         let rows = stmt.query_map([], |r| r.get(0)).map_err(e)?;
         rows.collect::<Result<_, _>>().map_err(e)
+    }
+
+    // ---------- projects and their task lists ----------
+
+    /// The tasks of one list: a project's id, or Elise's own list.
+    pub fn project_tasks(&self, list: &str) -> DbResult<Vec<ProjectTask>> {
+        let mut stmt = self
+            .conn
+            .prepare_cached("SELECT id, project_id, text, done FROM project_tasks WHERE project_id = ?1 ORDER BY position, created_at")
+            .map_err(e)?;
+        let rows = stmt
+            .query_map([list], |r| Ok(ProjectTask { id: r.get(0)?, project_id: r.get(1)?, text: r.get(2)?, done: r.get::<_, i64>(3)? != 0 }))
+            .map_err(e)?;
+        rows.collect::<Result<_, _>>().map_err(e)
+    }
+
+    pub fn projects(&self) -> DbResult<Vec<Project>> {
+        let heads: Vec<(String, String, String, Option<String>)> = {
+            let mut stmt = self.conn.prepare_cached("SELECT id, name, color, status FROM projects ORDER BY position, created_at").map_err(e)?;
+            let rows = stmt.query_map([], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?))).map_err(e)?;
+            rows.collect::<Result<_, _>>().map_err(e)?
+        };
+        heads
+            .into_iter()
+            .map(|(id, name, color, status)| {
+                let tasks = self.project_tasks(&id)?;
+                Ok(Project { id, name, color, status, tasks })
+            })
+            .collect()
+    }
+
+    pub fn project_exists(&self, id: &str) -> DbResult<bool> {
+        self.conn.query_row("SELECT 1 FROM projects WHERE id = ?1", [id], |_| Ok(())).optional().map(|r| r.is_some()).map_err(e)
+    }
+
+    pub fn project_count(&self) -> DbResult<usize> {
+        self.conn.query_row("SELECT COUNT(*) FROM projects", [], |r| r.get::<_, i64>(0)).map(|n| n as usize).map_err(e)
+    }
+
+    pub fn project_add(&self, name: &str, color: &str) -> DbResult<Project> {
+        let id = uuid::Uuid::new_v4().to_string();
+        self.conn
+            .execute(
+                "INSERT INTO projects (id, name, color, position, created_at)
+                 VALUES (?1, ?2, ?3, (SELECT COALESCE(MAX(position), 0) + 1 FROM projects), ?4)",
+                params![id, name, color, now()],
+            )
+            .map_err(e)?;
+        Ok(Project { id, name: name.to_string(), color: color.to_string(), status: None, tasks: Vec::new() })
+    }
+
+    pub fn project_update(&self, id: &str, name: &str, color: &str) -> DbResult<()> {
+        self.conn.execute("UPDATE projects SET name = ?2, color = ?3 WHERE id = ?1", params![id, name, color]).map_err(e)?;
+        Ok(())
+    }
+
+    pub fn project_set_status(&self, id: &str, status: Option<&str>) -> DbResult<()> {
+        self.conn.execute("UPDATE projects SET status = ?2 WHERE id = ?1", params![id, status]).map_err(e)?;
+        Ok(())
+    }
+
+    /// Remove a project and its tasks.
+    pub fn project_remove(&self, id: &str) -> DbResult<()> {
+        let tx = self.conn.unchecked_transaction().map_err(e)?;
+        tx.execute("DELETE FROM project_tasks WHERE project_id = ?1", [id]).map_err(e)?;
+        tx.execute("DELETE FROM projects WHERE id = ?1", [id]).map_err(e)?;
+        tx.commit().map_err(e)
+    }
+
+    pub fn task_add(&self, list: &str, text: &str) -> DbResult<ProjectTask> {
+        let id = uuid::Uuid::new_v4().to_string();
+        self.conn
+            .execute(
+                "INSERT INTO project_tasks (id, project_id, text, done, position, created_at)
+                 VALUES (?1, ?2, ?3, 0, (SELECT COALESCE(MAX(position), 0) + 1 FROM project_tasks WHERE project_id = ?2), ?4)",
+                params![id, list, text, now()],
+            )
+            .map_err(e)?;
+        Ok(ProjectTask { id, project_id: list.to_string(), text: text.to_string(), done: false })
+    }
+
+    pub fn task_set_done(&self, id: &str, done: bool) -> DbResult<()> {
+        let at = if done { Some(now()) } else { None };
+        self.conn.execute("UPDATE project_tasks SET done = ?2, done_at = ?3 WHERE id = ?1", params![id, done as i64, at]).map_err(e)?;
+        Ok(())
+    }
+
+    pub fn task_set_text(&self, id: &str, text: &str) -> DbResult<()> {
+        self.conn.execute("UPDATE project_tasks SET text = ?2 WHERE id = ?1", params![id, text]).map_err(e)?;
+        Ok(())
+    }
+
+    pub fn task_remove(&self, id: &str) -> DbResult<()> {
+        self.conn.execute("DELETE FROM project_tasks WHERE id = ?1", [id]).map_err(e)?;
+        Ok(())
+    }
+
+    /// Reorder one list. Tasks not named in `ids` are pushed after the named ones, in their old order.
+    pub fn tasks_reorder(&self, list: &str, ids: &[String]) -> DbResult<()> {
+        let tx = self.conn.unchecked_transaction().map_err(e)?;
+        tx.execute("UPDATE project_tasks SET position = position + ?2 WHERE project_id = ?1", params![list, ids.len() as i64 + 1])
+            .map_err(e)?;
+        for (i, id) in ids.iter().enumerate() {
+            tx.execute("UPDATE project_tasks SET position = ?3 WHERE id = ?1 AND project_id = ?2", params![id, list, i as i64 + 1]).map_err(e)?;
+        }
+        tx.commit().map_err(e)
+    }
+
+    pub fn tasks_clear_done(&self, list: &str) -> DbResult<()> {
+        self.conn.execute("DELETE FROM project_tasks WHERE project_id = ?1 AND done = 1", [list]).map_err(e)?;
+        Ok(())
     }
 
     pub fn meta_get(&self, key: &str) -> DbResult<Option<String>> {

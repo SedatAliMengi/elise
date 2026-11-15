@@ -1,6 +1,6 @@
 use tauri::menu::{CheckMenuItem, Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
-use tauri::{AppHandle, Manager, Wry};
+use tauri::{AppHandle, Emitter, Manager, Wry};
 
 use crate::settings::Settings;
 use crate::AppState;
@@ -31,6 +31,7 @@ pub fn build(app: &AppHandle) -> tauri::Result<TrayChecks> {
     let summon = MenuItem::with_id(app, "summon", "Summon Elise", true, None::<&str>)?;
     let open = MenuItem::with_id(app, "open", "Open Calendar", true, None::<&str>)?;
     let list = MenuItem::with_id(app, "checklist", "Yearly checklist", true, None::<&str>)?;
+    let projects = MenuItem::with_id(app, "projects", "Projects", true, None::<&str>)?;
     let stage = CheckMenuItem::with_id(app, "stage", "Big eye on screen", true, false, None::<&str>)?;
     let hover = CheckMenuItem::with_id(app, "hover", "Hover on screen", true, s.hover_mode, None::<&str>)?;
     let wake = CheckMenuItem::with_id(app, "wake", "Listen for \"Hey Elise\"", true, s.wake_word, None::<&str>)?;
@@ -41,7 +42,7 @@ pub fn build(app: &AppHandle) -> tauri::Result<TrayChecks> {
     let sep = || PredefinedMenuItem::separator(app);
     let menu = Menu::with_items(
         app,
-        &[&summon, &open, &list, &sep()?, &stage, &hover, &wake, &voice, &autostart, &sep()?, &settings, &quit],
+        &[&summon, &open, &projects, &list, &sep()?, &stage, &hover, &wake, &voice, &autostart, &sep()?, &settings, &quit],
     )?;
 
     TrayIconBuilder::with_id("elise")
@@ -53,6 +54,10 @@ pub fn build(app: &AppHandle) -> tauri::Result<TrayChecks> {
             "summon" => crate::overlay::summon(app, "tray"),
             "open" => crate::show_main(app, false),
             "checklist" => crate::checklist::open(app, crate::checklist::current_year()),
+            "projects" => {
+                crate::show_main(app, false);
+                let _ = app.emit_to("main", "open-projects", ());
+            }
             "settings" => crate::show_main(app, true),
             "quit" => app.exit(0),
             "stage" => {

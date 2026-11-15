@@ -7,6 +7,10 @@ import type {
   OverlayMode,
   ChecklistItem,
   ChecklistView,
+  Project,
+  ProjectStatus,
+  ProjectsBoard,
+  ProjectTask,
   ReminderPayload,
   Scope,
   Settings,
@@ -53,6 +57,18 @@ export const api = {
   checklistOpen: (year: number) => invoke<void>("checklist_open", { year }),
   takeYearPrompt: () => invoke<YearPrompt | null>("take_year_prompt"),
   oracleShow: () => invoke<void>("oracle_show"),
+  projectsGet: () => invoke<ProjectsBoard>("projects_get"),
+  projectAdd: (name: string) => invoke<Project>("project_add", { name }),
+  projectUpdate: (id: string, name: string, color: string) => invoke<void>("project_update", { id, name, color }),
+  projectSetStatus: (id: string, status: ProjectStatus | null) => invoke<void>("project_set_status", { id, status }),
+  projectRemove: (id: string) => invoke<void>("project_remove", { id }),
+  /** `projectId` is a project's id, or ELISE_LIST for her own list. */
+  taskAdd: (projectId: string, text: string) => invoke<ProjectTask>("task_add", { projectId, text }),
+  taskSetDone: (id: string, done: boolean) => invoke<void>("task_set_done", { id, done }),
+  taskSetText: (id: string, text: string) => invoke<void>("task_set_text", { id, text }),
+  taskRemove: (id: string) => invoke<void>("task_remove", { id }),
+  tasksReorder: (projectId: string, ids: string[]) => invoke<void>("tasks_reorder", { projectId, ids }),
+  tasksClearDone: (projectId: string) => invoke<void>("tasks_clear_done", { projectId }),
   voiceListen: () => invoke<void>("voice_listen"),
   voiceCancel: (why = "") => invoke<void>("voice_cancel", { why }),
   voiceFinish: () => invoke<void>("voice_finish"),
@@ -64,6 +80,9 @@ export const api = {
   isCalendarVisible: () => invoke<boolean>("is_calendar_visible"),
   quit: () => invoke<void>("quit"),
 };
+
+/** The id of Elise's own task list. */
+export const ELISE_LIST = "elise";
 
 export function on<T>(event: string, cb: (payload: T) => void): () => void {
   let un: UnlistenFn | null = null;

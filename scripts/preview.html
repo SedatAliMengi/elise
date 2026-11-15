@@ -47,6 +47,32 @@
     { id: "p1", year: CUR - 1, text: "Get my driving licence", done: true, doneAt: null },
     { id: "p2", year: CUR - 1, text: "Move to a bigger flat", done: false, doneAt: null },
   ];
+  // Projects view (?view=projects). Kept in localStorage so the preview remembers edits.
+  const uid = () => "x" + Math.random().toString(36).slice(2, 9);
+  const tk = (projectId, text, done = false) => ({ id: uid(), projectId, text, done });
+  const pj = (id, name, color, tasks) => ({ id, name, color, status: null, tasks: tasks.map(([t, d]) => tk(id, t, d)) });
+  const seedBoard = () => ({
+    elise: [tk("elise", "Review what moved this week"), tk("elise", "Renew the domain", true), tk("elise", "Back up the calendar")],
+    projects: [
+      pj("p1", "Lighthouse", "#b44cff", [["Tune the wake word", false], ["Listening indicator", false], ["Yearly checklist", true]]),
+      pj("p2", "Atlas", "#22b8cf", [["In-app API key screen", false], ["Build the installer", false], ["Merge the open PR", true], ["Landing page", false]]),
+      pj("p3", "Prism", "#ff4f8b", [["Pick the Adaptive shape", false], ["Ear-tuning pass", false]]),
+      pj("p4", "Nettle", "#f2a93b", [["Backup and restore", false], ["New exam coefficients", false], ["Corner notes", true]]),
+      pj("p5", "Juniper", "#4cd6a0", [["Check the new look on a phone", false], ["Commit the UI work", false]]),
+      pj("p6", "Frost", "#5b6cff", [["Recreate the venv", false]]),
+      pj("p7", "Archive", "#ff4f6d", [["Write migrations 008-010", false], ["Cache public pages", false], ["View counter", true]]),
+      pj("p8", "Meadow", "#c9c6d8", []),
+    ],
+  });
+  let BOARD;
+  try { BOARD = JSON.parse(localStorage.getItem("elise-preview-board")) || seedBoard(); } catch { BOARD = seedBoard(); }
+  if (params.get("reset")) BOARD = seedBoard();
+  const saveBoard = () => { try { localStorage.setItem("elise-preview-board", JSON.stringify(BOARD)); } catch {} };
+  const listOf = (id) => (id === "elise" ? BOARD.elise : BOARD.projects.find((p) => p.id === id).tasks);
+  const setList = (id, tasks) => { if (id === "elise") BOARD.elise = tasks; else BOARD.projects.find((p) => p.id === id).tasks = tasks; };
+  const allLists = () => ["elise", ...BOARD.projects.map((p) => p.id)];
+  const findTask = (id) => { for (const l of allLists()) { const t = listOf(l).find((t) => t.id === id); if (t) return [l, t]; } return [null, null]; };
+  const PCOLORS = ["#b44cff", "#ff4f6d", "#22b8cf", "#f2a93b", "#4cd6a0", "#5b6cff", "#ff4f8b", "#c9c6d8"];
   window.__calls = [];
   let nextCb = 1;
   window.__TAURI_INTERNALS__ = {
@@ -76,6 +102,17 @@
         case "checklist_add": { const it = { id: "n" + Date.now(), year: args.year, text: args.text, done: false, doneAt: null }; LIST.push(it); return it; }
         case "checklist_set_done": LIST.find((i) => i.id === args.id).done = args.done; return null;
         case "checklist_remove": LIST.splice(LIST.findIndex((i) => i.id === args.id), 1); return null;
+        case "projects_get": return JSON.parse(JSON.stringify(BOARD));
+        case "project_add": { const p = { id: uid(), name: args.name, color: PCOLORS[BOARD.projects.length % PCOLORS.length], status: null, tasks: [] }; BOARD.projects.push(p); saveBoard(); return JSON.parse(JSON.stringify(p)); }
+        case "project_update": { const p = BOARD.projects.find((p) => p.id === args.id); p.name = args.name; p.color = args.color; saveBoard(); return null; }
+        case "project_set_status": BOARD.projects.find((p) => p.id === args.id).status = args.status; saveBoard(); return null;
+        case "project_remove": BOARD.projects = BOARD.projects.filter((p) => p.id !== args.id); saveBoard(); return null;
+        case "task_add": { const t = tk(args.projectId, args.text); listOf(args.projectId).push(t); saveBoard(); return { ...t }; }
+        case "task_set_done": { const [, t] = findTask(args.id); if (t) t.done = args.done; saveBoard(); return null; }
+        case "task_set_text": { const [, t] = findTask(args.id); if (t) t.text = args.text; saveBoard(); return null; }
+        case "task_remove": { const [l] = findTask(args.id); if (l) setList(l, listOf(l).filter((t) => t.id !== args.id)); saveBoard(); return null; }
+        case "tasks_reorder": { const cur = listOf(args.projectId); setList(args.projectId, args.ids.map((id) => cur.find((t) => t.id === id)).filter(Boolean)); saveBoard(); return null; }
+        case "tasks_clear_done": setList(args.projectId, listOf(args.projectId).filter((t) => !t.done)); saveBoard(); return null;
         case "oracle_show": window.__calls.push("oracle_show"); return null;
         case "take_year_prompt": return params.get("prompt") ? { year: CUR, missed: false } : null;
         case "plugin:event|listen": return nextCb++;

@@ -13,6 +13,7 @@ Tauri 2 (Rust) + React/TS/Vite. Single user ("Enigma"), local only.
   - `llm.rs` command engine: Claude Messages API via raw reqwest, model `claude-haiku-4-5`, client tools
     (create/update/delete/find_events, ask_clarification). Summary lines are built from real changes.
   - `overlay.rs` overlay window modes Hidden / Compact (hover eye) / Expanded; geometry in physical px.
+  - `projects.rs` Projects view rules (project cards + task lists, Elise's own list = list id `elise`, tags `for_now` / `done`); UI in `src/projects/` (`ProjectsView`, `TaskList`, `Starfield`: canvas stars, no blur)
   - `checklist.rs` yearly checklist rules (this year: add/remove/tick; past: tick only; future: locked → `overlay::show_oracle`)
     and the year-end prompt (Dec 31 from the default reminder time, once per year via `meta` table; missed → first week of Jan).
   - `tray.rs`, `settings.rs` (JSON settings + API key in Windows Credential Manager via `keyring`).
@@ -50,3 +51,7 @@ Elise's vault is `C:\Users\Sedat\Desktop\Files\Obsidian Vaults\Elise` (Changelog
 Troubleshooting, Voice Engine, ...). **At the end of every session that changes something, update
 `Current Situation.md` there** (keep its headings; plain `- ` bullets with indented details; never delete
 anything in **Planned**; set `updated:` to today), and add new bugs to `Bug Log.md` / entries to `Changelog.md`.
+
+**Projects feature rule (owner, 2026-11-15):** Elise (the app) only READS each project vault's
+`Current Situation.md` (ViEn's is `ViEn/For Elise.md`) and nothing else: no writing to any vault, no
+other notes. The task list inside Elise is the owner's to design and edit; don't build it his way for him.

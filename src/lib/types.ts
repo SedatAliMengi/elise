@@ -118,3 +118,28 @@ export interface VoiceEvent {
   text?: string;
   msg?: string;
 }
+
+/** One line of a project's (or Elise's own) task list. */
+export interface ProjectTask {
+  id: string;
+  projectId: string;
+  text: string;
+  done: boolean;
+}
+
+export type ProjectStatus = "for_now" | "done";
+
+export interface Project {
+  id: string;
+  name: string;
+  color: string;
+  /** A tag set and cleared at will: finished for now, fully finished, or none. */
+  status: ProjectStatus | null;
+  tasks: ProjectTask[];
+}
+
+/** The Projects view: Elise's own list in the middle, the projects around her. */
+export interface ProjectsBoard {
+  elise: ProjectTask[];
+  projects: Project[];
+}

@@ -4,6 +4,7 @@ mod events;
 mod llm;
 mod model;
 mod overlay;
+mod projects;
 mod recur;
 mod scheduler;
 mod settings;
@@ -369,6 +370,63 @@ fn oracle_show(app: AppHandle) {
     overlay::show_oracle(&app);
 }
 
+// ---------------- commands: projects ----------------
+
+#[tauri::command]
+fn projects_get(state: tauri::State<AppState>) -> CmdResult<projects::ProjectsBoard> {
+    projects::board(&state.db.lock().unwrap())
+}
+
+#[tauri::command]
+fn project_add(state: tauri::State<AppState>, name: String) -> CmdResult<projects::Project> {
+    projects::add_project(&state.db.lock().unwrap(), &name)
+}
+
+#[tauri::command]
+fn project_update(state: tauri::State<AppState>, id: String, name: String, color: String) -> CmdResult<()> {
+    projects::update_project(&state.db.lock().unwrap(), &id, &name, &color)
+}
+
+#[tauri::command]
+fn project_set_status(state: tauri::State<AppState>, id: String, status: Option<String>) -> CmdResult<()> {
+    projects::set_status(&state.db.lock().unwrap(), &id, status.as_deref())
+}
+
+#[tauri::command]
+fn project_remove(state: tauri::State<AppState>, id: String) -> CmdResult<()> {
+    state.db.lock().unwrap().project_remove(&id)
+}
+
+#[tauri::command]
+fn task_add(state: tauri::State<AppState>, project_id: String, text: String) -> CmdResult<projects::ProjectTask> {
+    projects::add_task(&state.db.lock().unwrap(), &project_id, &text)
+}
+
+#[tauri::command]
+fn task_set_done(state: tauri::State<AppState>, id: String, done: bool) -> CmdResult<()> {
+    state.db.lock().unwrap().task_set_done(&id, done)
+}
+
+#[tauri::command]
+fn task_set_text(state: tauri::State<AppState>, id: String, text: String) -> CmdResult<()> {
+    projects::set_text(&state.db.lock().unwrap(), &id, &text)
+}
+
+#[tauri::command]
+fn task_remove(state: tauri::State<AppState>, id: String) -> CmdResult<()> {
+    state.db.lock().unwrap().task_remove(&id)
+}
+
+#[tauri::command]
+fn tasks_reorder(state: tauri::State<AppState>, project_id: String, ids: Vec<String>) -> CmdResult<()> {
+    projects::reorder(&state.db.lock().unwrap(), &project_id, &ids)
+}
+
+#[tauri::command]
+fn tasks_clear_done(state: tauri::State<AppState>, project_id: String) -> CmdResult<()> {
+    state.db.lock().unwrap().tasks_clear_done(&project_id)
+}
+
 // ---------------- commands: voice ----------------
 
 #[tauri::command]
@@ -559,6 +617,17 @@ pub fn run() {
             checklist_open,
             take_year_prompt,
             oracle_show,
+            projects_get,
+            project_add,
+            project_update,
+            project_set_status,
+            project_remove,
+            task_add,
+            task_set_done,
+            task_set_text,
+            task_remove,
+            tasks_reorder,
+            tasks_clear_done,
             voice_listen,
             voice_cancel,
             voice_finish,

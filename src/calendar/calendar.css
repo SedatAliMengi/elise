@@ -113,6 +113,19 @@
   position: relative;
   z-index: 20;
 }
+.toolbar__projects {
+  flex: none;
+  gap: 8px;
+  padding: 0 16px;
+  color: #e9dcff;
+  border-color: rgba(180, 76, 255, 0.4);
+  background: rgba(139, 0, 255, 0.12);
+}
+.toolbar__projects:hover {
+  background: rgba(139, 0, 255, 0.22);
+  border-color: rgba(180, 76, 255, 0.75);
+  box-shadow: 0 0 16px rgba(139, 0, 255, 0.3);
+}
 .toolbar__left,
 .toolbar__right {
   display: flex;

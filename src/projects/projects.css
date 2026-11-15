@@ -1,0 +1,646 @@
+/* Projects: Elise in the middle of a slow starfield, the projects wired to her.
+   No blur and no backdrop-filter anywhere: Elise renders without the GPU. */
+
+.projects {
+  position: fixed;
+  inset: 92px 0 0 0; /* below the title bar, so the window can still be dragged and closed */
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background:
+    radial-gradient(900px 520px at 22% 30%, rgba(96, 30, 190, 0.2), transparent 70%),
+    radial-gradient(760px 480px at 82% 78%, rgba(170, 20, 60, 0.11), transparent 70%),
+    radial-gradient(600px 400px at 60% 10%, rgba(40, 70, 190, 0.1), transparent 70%),
+    #05030b;
+}
+.projects__stars {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* ---------------- top row ---------------- */
+
+.projects__hud {
+  position: relative;
+  z-index: 40;
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 18px 0;
+  pointer-events: none;
+}
+.projects__hud > * {
+  pointer-events: auto;
+}
+.projects__back {
+  color: var(--text-dim);
+}
+.projects__back:hover {
+  color: var(--text);
+}
+.projects__title {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+.projects__title h2 {
+  margin: 0;
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-weight: 600;
+  font-size: 27px;
+  letter-spacing: 0.02em;
+  color: #f1e9ff;
+}
+.projects__title span {
+  font-size: 12.5px;
+  color: var(--text-faint);
+  white-space: nowrap;
+}
+.projects__new-form {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.projects__new-form .input {
+  width: 190px;
+  height: 34px;
+  background: rgba(20, 14, 31, 0.94);
+}
+
+/* ---------------- the space ---------------- */
+
+.projects__space {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+.projects__links {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  overflow: visible;
+}
+.projects__flow {
+  stroke-width: 1.6;
+  stroke-dasharray: 2 16;
+  animation: projects-flow 1.4s linear infinite;
+}
+@keyframes projects-flow {
+  to {
+    stroke-dashoffset: -36;
+  }
+}
+.projects__hint {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 12px;
+  text-align: center;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--text-faint);
+  pointer-events: none;
+}
+.projects__empty {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 22%;
+  margin: 0;
+  text-align: center;
+  color: var(--text-dim);
+  pointer-events: none;
+}
+.projects__empty b {
+  color: var(--text);
+  font-weight: 500;
+}
+
+/* ---------------- Elise ---------------- */
+
+.pelise {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+}
+.pelise__eye {
+  position: absolute;
+}
+.pelise__label {
+  position: absolute;
+  left: 0;
+  translate: -50% 0;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  white-space: nowrap;
+  transition: background 0.2s;
+}
+.pelise__label:hover {
+  background: rgba(39, 26, 64, 0.7);
+}
+.pelise__label b {
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-weight: 600;
+  font-size: 19px;
+  letter-spacing: 0.06em;
+  color: #f1e9ff;
+}
+.pelise__label span {
+  font-size: 12px;
+  color: var(--text-faint);
+}
+.pelise__panel {
+  position: absolute;
+  left: -180px;
+  width: 360px;
+  padding: 12px 14px 10px;
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(28, 18, 46, 0.97), rgba(13, 8, 22, 0.97));
+  border: 1px solid rgba(180, 76, 255, 0.4);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.5),
+    0 0 34px rgba(139, 0, 255, 0.22),
+    0 22px 50px rgba(0, 0, 0, 0.6);
+  transform-origin: 50% 0;
+  --accent: #b44cff;
+}
+
+/* ---------------- project cards ---------------- */
+
+.pcard-anchor {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+}
+.pcard {
+  position: absolute;
+  top: -28px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(27, 18, 44, 0.95), rgba(13, 8, 22, 0.95));
+  border: 1px solid color-mix(in srgb, var(--accent) 34%, #2c2042);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.45),
+    0 10px 26px rgba(0, 0, 0, 0.5);
+  transition:
+    border-color 0.25s,
+    box-shadow 0.3s;
+}
+.pcard-anchor.right .pcard {
+  left: 0;
+}
+.pcard-anchor.left .pcard {
+  right: 0;
+}
+.pcard:hover,
+.pcard-anchor.open .pcard {
+  border-color: color-mix(in srgb, var(--accent) 75%, #2c2042);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.45),
+    0 0 26px color-mix(in srgb, var(--accent) 30%, transparent),
+    0 18px 44px rgba(0, 0, 0, 0.6);
+}
+/* Where the wire from Elise plugs in. */
+.pcard__node {
+  position: absolute;
+  top: 28px;
+  width: 9px;
+  height: 9px;
+  margin-top: -4.5px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow:
+    0 0 0 3px #05030b,
+    0 0 10px var(--accent);
+  z-index: 2;
+}
+.pcard-anchor.right .pcard__node {
+  left: -5px;
+}
+.pcard-anchor.left .pcard__node {
+  right: -5px;
+}
+.pcard__head {
+  position: relative;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 16px 0 18px;
+  cursor: pointer;
+  border-radius: 14px;
+}
+.pcard__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 15.5px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: #f4eefc;
+}
+.pcard__rename {
+  flex: 1;
+  min-width: 0;
+  height: 30px;
+  padding: 0 8px;
+  border-radius: 7px;
+  border: 1px solid color-mix(in srgb, var(--accent) 60%, #2c2042);
+  background: rgba(8, 5, 14, 0.9);
+  font-size: 15px;
+  outline: none;
+}
+.pcard__count {
+  flex: none;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: color-mix(in srgb, var(--accent) 70%, #ede6f7);
+}
+.pcard__bar {
+  position: absolute;
+  left: 18px;
+  right: 16px;
+  bottom: 9px;
+  height: 2px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.07);
+  overflow: hidden;
+}
+.pcard__bar i {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--accent);
+}
+.pcard__body {
+  overflow: hidden;
+}
+.pcard__inner {
+  padding: 2px 14px 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+.pcard__tools {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 2px 8px;
+}
+.pcard__swatches {
+  display: flex;
+  gap: 6px;
+  flex: 1;
+}
+.pcard__swatches button {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  opacity: 0.55;
+  transition:
+    opacity 0.15s,
+    scale 0.15s,
+    box-shadow 0.15s;
+}
+.pcard__swatches button:hover {
+  opacity: 1;
+  scale: 1.2;
+}
+.pcard__swatches button.on {
+  opacity: 1;
+  box-shadow:
+    0 0 0 2px #120b1e,
+    0 0 0 3.5px currentColor;
+  color: #ede6f7;
+}
+.pcard__tool {
+  font-size: 12px;
+  padding: 4px 9px;
+  border-radius: 7px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+.pcard__tool:hover {
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--text);
+}
+.pcard__tool.danger:hover,
+.pcard__tool.danger.sure {
+  background: var(--pupil-soft);
+  color: #ff9c9c;
+}
+
+/* ---------------- tags: finished for now / fully finished ---------------- */
+
+/* The tag sits on the card's top edge, like a seal. */
+.pcard__tag {
+  position: absolute;
+  top: -10px;
+  z-index: 3;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  border: 1px solid;
+}
+.pcard-anchor.right .pcard__tag {
+  left: 16px;
+}
+.pcard-anchor.left .pcard__tag {
+  right: 16px;
+}
+.is-for_now .pcard__tag {
+  color: #ffd9a0;
+  background: #2a1c0c;
+  border-color: rgba(242, 169, 59, 0.6);
+}
+.is-done .pcard__tag {
+  color: #b9f5dc;
+  background: #0b2a20;
+  border-color: rgba(76, 214, 160, 0.65);
+  box-shadow: 0 0 12px rgba(76, 214, 160, 0.25);
+}
+/* A resting project steps back a little; a finished one keeps a calm glow. */
+.is-for_now:not(.open) .pcard__name,
+.is-done:not(.open) .pcard__name {
+  color: #b9aed0;
+}
+.is-done .pcard {
+  border-color: rgba(76, 214, 160, 0.4);
+}
+.pcard__status {
+  display: flex;
+  gap: 6px;
+  padding: 0 0 10px;
+}
+.pcard__chip {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  height: 28px;
+  border-radius: 8px;
+  font-size: 12px;
+  white-space: nowrap;
+  color: var(--text-dim);
+  border: 1px solid #2c2042;
+  background: rgba(8, 5, 14, 0.5);
+  transition:
+    background 0.2s,
+    border-color 0.2s,
+    color 0.2s,
+    box-shadow 0.2s;
+}
+.pcard__chip i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1.5px solid currentColor;
+  transition: background 0.2s;
+}
+.pcard__chip:hover {
+  color: var(--text);
+  border-color: #3d2c5c;
+}
+.pcard__chip.for_now.on {
+  color: #ffd9a0;
+  background: rgba(242, 169, 59, 0.14);
+  border-color: rgba(242, 169, 59, 0.6);
+}
+.pcard__chip.done.on {
+  color: #b9f5dc;
+  background: rgba(76, 214, 160, 0.14);
+  border-color: rgba(76, 214, 160, 0.65);
+  box-shadow: 0 0 14px rgba(76, 214, 160, 0.18);
+}
+.pcard__chip.on i {
+  background: currentColor;
+}
+
+/* ---------------- task list ---------------- */
+
+.tasks__empty {
+  margin: 10px 4px 12px;
+  font-size: 13px;
+  color: var(--text-faint);
+}
+.tasks__list {
+  list-style: none;
+  margin: 0 -6px;
+  padding: 0 2px 0 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: #3d2c5c transparent;
+}
+.task {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 36px;
+  padding: 5px 6px 5px 2px;
+  border-radius: 8px;
+  background: transparent;
+}
+.task:hover {
+  background: rgba(255, 255, 255, 0.045);
+}
+.task.dragging {
+  background: #241736;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.55);
+  z-index: 3;
+}
+.task__grip {
+  flex: none;
+  width: 14px;
+  text-align: center;
+  font-size: 11px;
+  letter-spacing: -2px;
+  color: var(--text-faint);
+  opacity: 0;
+  cursor: grab;
+  touch-action: none;
+  transition: opacity 0.15s;
+}
+.task:hover .task__grip,
+.task.dragging .task__grip {
+  opacity: 0.9;
+}
+.task.dragging .task__grip {
+  cursor: grabbing;
+}
+.task__check {
+  flex: none;
+  width: 19px;
+  height: 19px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  border: 1.5px solid color-mix(in srgb, var(--accent) 55%, #3d2c5c);
+  color: transparent;
+  transition:
+    background 0.2s,
+    border-color 0.2s,
+    color 0.2s,
+    scale 0.15s;
+}
+.task__check:hover {
+  border-color: var(--accent);
+  scale: 1.08;
+}
+.task.done .task__check {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #0a0710;
+}
+.task__text {
+  flex: 1;
+  min-width: 0;
+  font-size: 13.5px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  transition: color 0.25s;
+}
+/* The strike is drawn across the words (a growing background), like the checklist's. */
+.task__label {
+  background: linear-gradient(currentColor, currentColor) no-repeat 0 55% / 0 1.5px;
+  transition: background-size 0.3s var(--ease);
+}
+.task.done .task__text {
+  color: var(--text-faint);
+}
+.task.done .task__label {
+  background-size: 100% 1.5px;
+}
+.task__edit {
+  flex: 1;
+  min-width: 0;
+  height: 26px;
+  padding: 0 7px;
+  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, var(--accent) 60%, #2c2042);
+  background: rgba(8, 5, 14, 0.9);
+  font-size: 13.5px;
+  outline: none;
+}
+.task__tools {
+  flex: none;
+  display: flex;
+  gap: 1px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.task:hover .task__tools,
+.task__tools:focus-within {
+  opacity: 1;
+}
+.task__tools button {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--text-faint);
+}
+.task__tools button:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+}
+.task__tools .task__remove:hover {
+  color: var(--pupil-glow);
+}
+
+.tasks__add {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 0 6px 0 10px;
+  height: 36px;
+  border-radius: 9px;
+  background: rgba(8, 5, 14, 0.75);
+  border: 1px solid #2c2042;
+  transition: border-color 0.2s;
+}
+.tasks__add:focus-within {
+  border-color: color-mix(in srgb, var(--accent) 65%, #2c2042);
+}
+.tasks__plus {
+  color: var(--accent);
+  font-size: 16px;
+  line-height: 1;
+}
+.tasks__input {
+  flex: 1;
+  min-width: 0;
+  width: 0;
+  height: 100%;
+  border: none;
+  background: none;
+  outline: none;
+  font-size: 13.5px;
+}
+.tasks__input::placeholder {
+  color: var(--text-faint);
+}
+.tasks__go {
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  color: #0a0710;
+  background: var(--accent);
+  font-weight: 500;
+  transition: opacity 0.15s;
+}
+.tasks__go:disabled {
+  opacity: 0;
+  pointer-events: none;
+}
+.tasks__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 8px;
+  min-height: 20px;
+  font-size: 11px;
+  color: var(--text-faint);
+}
+.tasks__clear {
+  flex: none;
+  font-size: 11.5px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  color: var(--text-dim);
+}
+.tasks__clear:hover {
+  background: var(--pupil-soft);
+  color: #ff9c9c;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .projects__flow {
+    animation: none;
+  }
+}
