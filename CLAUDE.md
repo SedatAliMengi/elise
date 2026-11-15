@@ -20,6 +20,10 @@ Tauri 2 (Rust) + React/TS/Vite. Single user ("Enigma"), local only.
   - `lib.rs` AppState, Tauri commands, setup.
 - `src/` — `main.tsx` routes `?window=overlay` to `overlay/OverlayApp`, else `calendar/CalendarApp`.
   - `components/Eye.tsx` the eye (SVG + motion); states appearing/idle/listening/thinking/speaking/error/vanishing/closed.
+    The design itself (the "model") lives in `components/eyeArt.ts`: outlines traced from the owner's art, the detailed surfaces
+    (steel lashes, fibres, tick ring, cut-metal star, pupil socket) and the real eyelid (`upperLidPath(k)`). The icon generator draws
+    the same model (`npm run icons`). Rules: purple only in the iris, red only in the pupil, no reflection dot. **No new blur filters**,
+    and the always-running eye animations step on one 12-per-second clock (see `Eye.css`): without the GPU any change repaints the whole eye.
   - `components/CommandPanel.tsx` bubble + input, used by both the overlay and the calendar title bar.
   - `lib/speech.ts` the only place that speaks (`speak()`), so voice output can be removed cleanly.
 

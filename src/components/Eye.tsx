@@ -1,21 +1,50 @@
 import { animate, motion, useMotionValue, useSpring, useTransform } from "motion/react";
-import { useEffect, useId, useRef } from "react";
+import { useEffect, useId, useMemo, useRef } from "react";
 import type { EyeState } from "../lib/types";
-import { ASPECT, COLORS as C, DOTS, IRIS_R, LOWER, OPENING, SPARKLES, STAR_ARMS, UPPER, VIEWBOX } from "./eyeArt";
+import {
+  ASPECT,
+  COLORS as C,
+  DOTS,
+  IRIS_R,
+  LID_TRAVEL,
+  OPENING,
+  SPARKLES,
+  UPPER_BEVEL_WIDTHS,
+  VIEWBOX,
+  compassStar,
+  eyeDefs,
+  irisDetail,
+  irisGlints,
+  irisRim,
+  irisTicks,
+  lidClipPath,
+  lidEdgePath,
+  lowerLashes,
+  pupilDetail,
+  pupilSocket,
+  scleraRim,
+  upperLidPath,
+} from "./eyeArt";
 import "./Eye.css";
 
 /**
- * Elise's eye (traced from the user's reference art): spiked lashes, white
- * sclera, purple starfield iris with a silver compass star and a red pupil.
+ * Elise's eye (traced from the user's reference art, detailed model in
+ * eyeArt.ts): steel lashes, a shaded white, a purple starfield iris with
+ * fibres, an engraved tick ring and a cut-metal compass star, and a red pupil.
  *
- * Motion: the compass star turns slowly and the sparkles counter-rotate
- * (faster while thinking), stars twinkle, the iris glances around while idle,
- * the eyeball squashes shut to blink, and the pupil follows the mic level.
+ * Motion: a real upper eyelid comes down to blink, close and open (the lashes
+ * ride on it); the compass star turns slowly, the sparkles and the tick ring
+ * drift the other way (faster while thinking), stars twinkle, the iris glances
+ * around while idle, and the pupil follows the mic level.
  * Hosts unmount the eye while their window is hidden, which stops every loop.
  */
 
 const rand = (a: number, b: number) => a + Math.random() * (b - a);
 const BOX: React.CSSProperties = { transformBox: "fill-box", transformOrigin: "center" };
+/** `open` runs from SHUT (lids together) to 1 (open); a little above 1 is the overshoot when she wakes. */
+const SHUT = 0.04;
+const closedness = (open: number) => Math.max(0, Math.min(1, (1 - open) / (1 - SHUT)));
+const html = (s: string) => ({ __html: s });
 
 interface Props {
   state: EyeState;
@@ -36,33 +65,58 @@ interface Props {
 
 export default function Eye({ state, size = 140, level = 0, dim, onClick, onMouseDown, onContextMenu, title, className, appearDelay = 0 }: Props) {
   const uid = useId().replace(/[^a-zA-Z0-9]/g, "");
-  const id = (n: string) => `${n}-${uid}`;
+  const id = (n: string) => `${uid}${n}`;
 
-  const open = useMotionValue(state === "appearing" || state === "closed" ? 0.04 : 1);
-  const lidTf = useTransform(open, (k) => `scale(1, ${Math.max(0.04, k)})`);
-  const lashScale = useTransform(open, [0.04, 1], [0.94, 1]);
-  const lashTf = useTransform(lashScale, (s) => `scale(${s})`);
-  const lookX = useSpring(0, { stiffness: 50, damping: 14 });
-  const lookY = useSpring(0, { stiffness: 50, damping: 14 });
+  const open = useMotionValue(state === "appearing" || state === "closed" ? SHUT : 1);
+  // The eyelid: every shape that follows the lid is derived from `open`.
+  const upperD = useTransform(open, (v) => upperLidPath(closedness(v)));
+  const lidClipD = useTransform(open, (v) => lidClipPath(closedness(v)));
+  const edgeD = useTransform(open, (v) => lidEdgePath(closedness(v)));
+  const edgeOpacity = useTransform(open, (v) => Math.min(1, closedness(v) * 8));
+  const edgeShade = useTransform(edgeOpacity, (o) => o * 0.5);
+  const auraOpacity = useTransform(open, (v) => 1 - closedness(v));
+  const shadeTf = useTransform(open, (v) => `translate(0px, ${(LID_TRAVEL * closedness(v)).toFixed(1)}px)`);
+  const wideTf = useTransform(open, (v) => `scale(${v > 1 ? 1 + (v - 1) * 1.2 : 1})`);
+
+  const lookX = useSpring(0, { stiffness: 140, damping: 22 });
+  const lookY = useSpring(0, { stiffness: 140, damping: 22 });
   const irisTf = useTransform([lookX, lookY], ([x, y]) => `translate(${x}px, ${y}px)`);
   const pupil = useSpring(1, { stiffness: 220, damping: 18 });
   const pupilTf = useTransform(pupil, (p) => `scale(${p})`);
   const stateRef = useRef(state);
   stateRef.current = state;
 
+  // The fixed artwork, built once per eye.
+  const art = useMemo(
+    () => ({
+      defs: html(eyeDefs(uid)),
+      lower: html(lowerLashes(uid)),
+      rim: html(scleraRim()),
+      iris: html(irisDetail(uid)),
+      glints: html(irisGlints()),
+      ticks: html(irisTicks()),
+      irisRim: html(irisRim(uid)),
+      star: html(compassStar()),
+      socket: html(pupilSocket(uid)),
+      pupil: html(pupilDetail()),
+    }),
+    [uid],
+  );
+
   // Open / close with the state.
   useEffect(() => {
     if (state === "appearing") {
-      open.set(0.04);
-      const c = animate(open, 1, { duration: 0.55, ease: [0.22, 1, 0.36, 1], delay: 0.12 + appearDelay });
+      open.set(SHUT);
+      // The lids part, go a touch too wide, and settle.
+      const c = animate(open, [SHUT, 1.05, 1], { duration: 0.75, times: [0, 0.72, 1], ease: [0.22, 1, 0.36, 1], delay: 0.12 + appearDelay });
       return () => c.stop();
     }
     if (state === "vanishing") {
-      const c = animate(open, 0.04, { duration: 0.3, ease: [0.55, 0, 0.8, 0.2] });
+      const c = animate(open, SHUT, { duration: 0.32, ease: [0.55, 0, 0.8, 0.2] });
       return () => c.stop();
     }
     if (state === "closed") {
-      open.set(0.04);
+      open.set(SHUT);
       return;
     }
     if (open.get() < 0.9) {
@@ -71,14 +125,14 @@ export default function Eye({ state, size = 140, level = 0, dim, onClick, onMous
     }
   }, [state, open, appearDelay]);
 
-  // Natural blinking.
+  // Natural blinking: down fast, up a little slower.
   useEffect(() => {
     let t: number;
     const loop = () => {
       t = window.setTimeout(() => {
         const s = stateRef.current;
         if (s === "idle" || s === "listening" || s === "speaking") {
-          animate(open, [1, 0.06, 1], { duration: 0.22, times: [0, 0.45, 1], ease: "easeInOut" });
+          animate(open, [1, SHUT, 1], { duration: 0.26, times: [0, 0.4, 1], ease: "easeInOut" });
         }
         loop();
       }, rand(4500, 9000));
@@ -130,101 +184,85 @@ export default function Eye({ state, size = 140, level = 0, dim, onClick, onMous
       aria-label={title ?? "Elise"}
     >
       <svg viewBox={VIEWBOX} width={size} height={size * ASPECT} overflow="visible">
+        <defs dangerouslySetInnerHTML={art.defs} />
         <defs>
-          <radialGradient id={id("sc")} cx="0" cy="-10" r="200" gradientUnits="userSpaceOnUse">
-            <stop offset="0.3" stopColor={C.sclera0} />
-            <stop offset="1" stopColor={C.sclera1} />
-          </radialGradient>
-          <linearGradient id={id("ls")} x1="0" y1="-120" x2="0" y2="-40" gradientUnits="userSpaceOnUse">
-            <stop offset="0" stopColor="#000" stopOpacity="0.45" />
-            <stop offset="1" stopColor="#000" stopOpacity="0" />
-          </linearGradient>
-          <radialGradient id={id("ir")} cx="0" cy="0" r={IRIS_R} gradientUnits="userSpaceOnUse">
-            <stop offset="0" stopColor={C.iris0} />
-            <stop offset="1" stopColor={C.iris1} />
-          </radialGradient>
-          <linearGradient id={id("sv")} x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0" stopColor="#ffffff" />
-            <stop offset="0.55" stopColor="#bdbdc8" />
-            <stop offset="1" stopColor="#7c7c8a" />
-          </linearGradient>
-          <linearGradient id={id("rg")} x1="-40" y1="-40" x2="40" y2="40" gradientUnits="userSpaceOnUse">
-            <stop offset="0" stopColor="#ffffff" />
-            <stop offset="0.6" stopColor="#b8b8c4" />
-            <stop offset="1" stopColor="#6f6f7c" />
-          </linearGradient>
-          <radialGradient id={id("pu")} cx="0" cy="0" r="21" gradientUnits="userSpaceOnUse">
-            <stop offset="0" stopColor="#1a0000" />
-            <stop offset="0.55" stopColor="#b00000" />
-            <stop offset="1" stopColor="#ff3030" />
-          </radialGradient>
-          <radialGradient id={id("ug")} cx="0" cy="0" r="1" gradientTransform="translate(0 70) scale(200 110)" gradientUnits="userSpaceOnUse">
-            <stop offset="0" stopColor="#fff" stopOpacity="0.2" />
-            <stop offset="1" stopColor="#fff" stopOpacity="0" />
-          </radialGradient>
-          <filter id={id("b6")} x="-40%" y="-40%" width="180%" height="180%">
-            <feGaussianBlur stdDeviation="6" />
-          </filter>
-          <filter id={id("b2")} x="-50%" y="-50%" width="200%" height="200%">
-            <feGaussianBlur stdDeviation="2.5" />
-          </filter>
-          <clipPath id={id("op")}>
-            <path d={OPENING} />
+          {/* these two follow the eyelid */}
+          <clipPath id={id("lid")}>
+            <motion.path d={lidClipD} />
+          </clipPath>
+          <clipPath id={id("uc")}>
+            <motion.path d={upperD} />
           </clipPath>
         </defs>
 
-        {/* soft light around and below the eye */}
-        <ellipse cx="0" cy="70" rx="200" ry="110" fill={`url(#${id("ug")})`} className="eye__underglow" />
-        <path d={OPENING} fill={C.glow} filter={`url(#${id("b6")})`} opacity="0.28" transform="translate(0 8)" className="eye__aura" />
+        <motion.g style={{ ...BOX, transform: wideTf }}>
+          {/* soft light around and below the eye */}
+          <ellipse cx="0" cy="70" rx="200" ry="110" fill={`url(#${id("ha")})`} className="eye__underglow" />
+          {/* the glow behind the eyeball fades as the lid shuts, and the lid's own skin is black */}
+          <motion.g style={{ opacity: auraOpacity }}>
+            <path d={OPENING} fill={C.glow} filter={`url(#${id("b6")})`} opacity="0.28" transform="translate(0 8)" className="eye__aura" />
+          </motion.g>
+          <path d={OPENING} fill="#000" />
 
-        {/* lashes and lids */}
-        <motion.g style={{ ...BOX, transform: lashTf }}>
-          <path d={UPPER} fill="none" stroke={C.glow} strokeWidth="5" filter={`url(#${id("b2")})`} opacity="0.22" />
-          <path d={UPPER} fill="#000" stroke={C.line} strokeWidth="2.6" strokeLinejoin="round" />
-          {LOWER.map((d, i) => (
-            <path key={i} d={d} fill="#000" stroke={C.line} strokeWidth="2.6" strokeLinejoin="round" className="eye__lower" />
-          ))}
-        </motion.g>
+          {/* upper lashes and lid: steel, with a bevel inside the outline */}
+          <motion.path d={upperD} fill="none" stroke={C.glow} strokeWidth="5" filter={`url(#${id("b2")})`} opacity="0.22" />
+          <motion.path d={upperD} fill={`url(#${id("la")})`} stroke={`url(#${id("s2")})`} strokeWidth="2.6" strokeLinejoin="round" />
+          <g clipPath={`url(#${id("uc")})`}>
+            <motion.path d={upperD} fill="none" stroke="#8e8ea6" strokeWidth={UPPER_BEVEL_WIDTHS.band} opacity="0.42" />
+            <motion.path d={upperD} fill="none" stroke="#ffffff" strokeWidth={UPPER_BEVEL_WIDTHS.rim} opacity="0.4" />
+          </g>
+          <g dangerouslySetInnerHTML={art.lower} />
 
-        {/* the eyeball squashes shut to blink */}
-        <motion.g style={{ ...BOX, transform: lidTf }}>
-          <path d={OPENING} fill={`url(#${id("sc")})`} />
-          <g clipPath={`url(#${id("op")})`}>
-            <rect x="-200" y="-150" width="400" height="150" fill={`url(#${id("ls")})`} />
-            <motion.g style={{ transform: irisTf }}>
-              <circle r={IRIS_R} fill={`url(#${id("ir")})`} />
-              <g>
-                {DOTS.map((d, i) => (
-                  <circle
-                    key={i}
-                    cx={d.x}
-                    cy={d.y}
-                    r={d.r}
-                    fill={C.dots}
-                    opacity={d.o}
-                    className={d.tw >= 0 ? "eye__tw" : undefined}
-                    style={d.tw >= 0 ? ({ animationDelay: `${d.tw}s` } as React.CSSProperties) : undefined}
-                  />
-                ))}
-              </g>
-              <g className="eye__star" style={BOX}>
-                {STAR_ARMS.map((d, i) => (
-                  <path key={i} d={d} fill={`url(#${id("sv")})`} />
-                ))}
-                <circle r="102" fill="none" />
-              </g>
-              <g className="eye__sparkles" style={BOX}>
-                {SPARKLES.map((d, i) => (
-                  <path key={i} d={d} fill={`url(#${id("sv")})`} />
-                ))}
-              </g>
-              <circle r="35" fill="#000" />
-              <circle r="38.5" fill="none" stroke={`url(#${id("rg")})`} strokeWidth="6.5" />
-              <motion.g style={{ ...BOX, transform: pupilTf }}>
-                <circle r="24" fill={C.pupilGlow} filter={`url(#${id("b2")})`} className="eye__pupil-glow" />
-                <circle r="21" fill={`url(#${id("pu")})`} className="eye__pupil" />
+          {/* the eyeball, hidden above the lid's edge */}
+          <g clipPath={`url(#${id("lid")})`}>
+            <path d={OPENING} fill={`url(#${id("sc")})`} />
+            <g clipPath={`url(#${id("op")})`}>
+              <g dangerouslySetInnerHTML={art.rim} />
+              <motion.g style={{ transform: irisTf }}>
+                <circle r={IRIS_R} fill={`url(#${id("ir")})`} />
+                <g dangerouslySetInnerHTML={art.iris} />
+                <g>
+                  {DOTS.map((d, i) => (
+                    <circle
+                      key={i}
+                      cx={d.x}
+                      cy={d.y}
+                      r={d.r}
+                      fill={C.dots}
+                      opacity={d.o}
+                      className={d.tw >= 0 ? "eye__tw" : undefined}
+                      style={d.tw >= 0 ? ({ animationDelay: `${(Math.round(d.tw * 12) / 12).toFixed(4)}s` } as React.CSSProperties) : undefined}
+                    />
+                  ))}
+                </g>
+                <g dangerouslySetInnerHTML={art.glints} />
+                <g className="eye__ticks" style={BOX} dangerouslySetInnerHTML={art.ticks} />
+                <g dangerouslySetInnerHTML={art.irisRim} />
+                <g className="eye__star" style={BOX}>
+                  <g dangerouslySetInnerHTML={art.star} />
+                  <circle r="102" fill="none" />
+                </g>
+                <g className="eye__sparkles" style={BOX}>
+                  {SPARKLES.map((d, i) => (
+                    <path key={i} d={d} fill={`url(#${id("sv")})`} />
+                  ))}
+                </g>
+                <g dangerouslySetInnerHTML={art.socket} />
+                <motion.g style={{ ...BOX, transform: pupilTf }}>
+                  <circle r="24" fill={C.pupilGlow} filter={`url(#${id("b2")})`} className="eye__pupil-glow" />
+                  <circle r="21" fill={`url(#${id("pu")})`} className="eye__pupil" />
+                  <g dangerouslySetInnerHTML={art.pupil} />
+                </motion.g>
               </motion.g>
-            </motion.g>
+              {/* the lid's shadow on the eye, moving with the lid */}
+              <motion.rect x="-200" y="-150" width="400" height="150" fill={`url(#${id("ls")})`} style={{ transform: shadeTf }} />
+            </g>
+          </g>
+
+          {/* the lid's edge: a clean line where the lid meets the eye */}
+          <g clipPath={`url(#${id("op")})`}>
+            <motion.path d={edgeD} fill="none" stroke="#000" strokeWidth="9" strokeLinecap="round" style={{ opacity: edgeShade }} />
+            <motion.path d={edgeD} fill="none" stroke={C.line} strokeWidth="3" strokeLinecap="round" style={{ opacity: edgeOpacity }} />
           </g>
         </motion.g>
       </svg>

@@ -11,14 +11,20 @@
   cursor: pointer;
 }
 
+/* Elise renders without the GPU, and any change inside the eye repaints all of
+   it. So the slow, always-running motions below move in steps on one shared
+   clock of 12 ticks a second (every duration and delay is a multiple of 1/12 s):
+   the eye repaints 12 times a second instead of 60, and at these speeds the
+   steps can't be seen. Blinks, glances and the pupil stay fully smooth. */
+
 /* slow glow "breathing" */
 .eye__aura,
 .eye__underglow {
-  animation: eye-breathe 4.6s ease-in-out infinite;
+  animation: eye-breathe 5s steps(30) infinite;
 }
 .eye__pupil-glow {
   opacity: 0.85;
-  animation: eye-breathe 3.2s ease-in-out infinite;
+  animation: eye-breathe 3s steps(18) infinite;
 }
 @keyframes eye-breathe {
   0%,
@@ -35,16 +41,27 @@
 
 /* the compass star turns slowly; the sparkles drift the other way */
 .eye__star {
-  animation: eye-spin 60s linear infinite;
+  animation: eye-spin 60s steps(720) infinite;
 }
 .eye__sparkles {
-  animation: eye-spin 90s linear infinite reverse;
+  animation: eye-spin 90s steps(1080) infinite reverse;
+}
+/* the engraved tick ring turns the other way, very slowly */
+.eye__ticks {
+  animation: eye-spin 240s steps(2880) infinite reverse;
+}
+/* thinking: everything turns fast, so it steps twice as finely (24 a second) */
+.eye--thinking .eye__ticks {
+  animation-duration: 14s;
+  animation-timing-function: steps(336);
 }
 .eye--thinking .eye__star {
   animation-duration: 5s;
+  animation-timing-function: steps(120);
 }
 .eye--thinking .eye__sparkles {
-  animation-duration: 2.6s;
+  animation-duration: 2.5s;
+  animation-timing-function: steps(60);
 }
 @keyframes eye-spin {
   to {
@@ -54,7 +71,7 @@
 
 /* twinkling stars */
 .eye__tw {
-  animation: eye-twinkle 3.4s ease-in-out infinite;
+  animation: eye-twinkle 4s steps(24) infinite;
 }
 @keyframes eye-twinkle {
   0%,
@@ -69,7 +86,7 @@
 /* listening / speaking: the pupil glows harder */
 .eye--listening .eye__pupil-glow,
 .eye--speaking .eye__pupil-glow {
-  animation-duration: 1.4s;
+  animation-duration: 1.5s;
 }
 
 /* error: the pupil flickers once */
