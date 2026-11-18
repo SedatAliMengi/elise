@@ -1445,6 +1445,59 @@
    "expect": {
     "action": "clarify_or_none"
    }
+  },
+  {
+   "id": 105,
+   "category": "briefing",
+   "lang": "en",
+   "text": "How's my day looking?",
+   "expect": {
+    "action": "none",
+    "answer_any": [
+     "lunch",
+     "ali"
+    ]
+   }
+  },
+  {
+   "id": 106,
+   "category": "briefing",
+   "lang": "en",
+   "text": "Brief me on my week",
+   "expect": {
+    "action": "none",
+    "answer_any": [
+     "dentist",
+     "project",
+     "lunch",
+     "busiest",
+     "busy"
+    ]
+   }
+  },
+  {
+   "id": 107,
+   "category": "briefing",
+   "lang": "tr",
+   "text": "Yarın günüm nasıl?",
+   "expect": {
+    "action": "none",
+    "answer_any": [
+     "dişçi",
+     "dentist",
+     "proje",
+     "project"
+    ]
+   }
+  },
+  {
+   "id": 108,
+   "category": "briefing",
+   "lang": "en",
+   "text": "What does next week look like?",
+   "expect": {
+    "action": "none"
+   }
   }
  ]
 }

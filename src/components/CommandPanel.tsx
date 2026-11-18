@@ -236,7 +236,7 @@ export default function CommandPanel({ settings, greet = true, placement, onEyeS
         onEyeState("speaking");
         await speak(message, vo);
         onEyeState("idle");
-        closeAfter(3500 + message.length * 45);
+        closeAfter(3500 + message.length * 45 + r.summary.length * 900);
         break;
       case "clarify":
         setBubble(message);

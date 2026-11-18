@@ -1,3 +1,4 @@
+mod briefing;
 mod checklist;
 mod db;
 mod events;

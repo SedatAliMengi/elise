@@ -162,6 +162,12 @@ add("ambiguous", "en", "Cancel it", action="clarify_or_none")
 add("ambiguous", "tr", "Sonrası için bir şey ayarla", action="clarify_or_none")
 add("ambiguous", "tr", "Toplantımı taşı", action="clarify_or_none")
 
+# ---------- briefings: a spoken summary of a day or a week, nothing changes ----------
+add("briefing", "en", "How's my day looking?", action="none", answer_any=["lunch", "ali"])
+add("briefing", "en", "Brief me on my week", action="none", answer_any=["dentist", "project", "lunch", "busiest", "busy"])
+add("briefing", "tr", "Yarın günüm nasıl?", action="none", answer_any=["dişçi", "dentist", "proje", "project"])
+add("briefing", "en", "What does next week look like?", action="none")
+
 out = {"now": NOW, "seed": SEED, "cases": cases}
 path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "commands.json")
 with open(path, "w", encoding="utf-8") as f:

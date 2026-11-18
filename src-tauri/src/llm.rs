@@ -38,6 +38,8 @@ pub struct Session {
     text: String,
     /// Waiting for the answer to ask_clarification: (tool_use_id, other tool results of that turn).
     pending: Option<(String, Vec<Value>)>,
+    /// Agenda lines from get_briefing, shown under her answer.
+    pub(crate) briefing: Vec<String>,
 }
 
 fn system_prompt(user: &str) -> String {
@@ -71,6 +73,7 @@ and never ask which date a weekday or \"next month\" means: pick the nearest fut
 the day after tomorrow, haftaya = next week, bu = this, ertele = postpone, öne çek = make earlier, iptal et / sil = \
 cancel, hatırlat = remind, her = every, sabah = morning, öğlen = noon, akşam = evening. Keep the user's wording for titles.
 - Questions like \"what do I have on Friday?\" are answered in text: one or two short spoken-style sentences.
+- Briefings: \"how's my day\", \"brief me\", \"what does my week look like\", \"günüm nasıl\", \"bu hafta neler var\" and the like: call get_briefing (period day or week) and answer from its facts. The agenda is shown on screen, so don't read out every event: say how busy it is, the first thing coming up, any clash, and the biggest free stretch. A day briefing is two or three sentences, a week briefing three or four. \"This week\" or \"my week\" starts today; \"next week\" starts next Monday. A briefing with no date means today.
 - Everything you write is read aloud: plain sentences only. Never use markdown, asterisks, bullets, dashes as \
 separators, headings or emoji. Say time ranges as \"from 3 to 4 PM\".
 - After making changes, reply with a very short confirmation (a few words). Never ask for confirmation first."
@@ -173,6 +176,18 @@ fn tools() -> Value {
                     "from": {"type": "string", "description": "YYYY-MM-DD"},
                     "to": {"type": "string", "description": "YYYY-MM-DD inclusive"}
                 }
+            }
+        },
+        {
+            "name": "get_briefing",
+            "description": "Work out a briefing: events, clashes and free time for one day, or for the 7 days starting at date.",
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "period": {"type": "string", "enum": ["day", "week"]},
+                    "date": {"type": "string", "description": "YYYY-MM-DD, the day or the first day of the week; default today"}
+                },
+                "required": ["period"]
             }
         },
         {
@@ -664,6 +679,22 @@ pub async fn run_core(ctx: &Ctx<'_>, key: &str, session: &mut Session, text: &st
             let id = block.get("id").and_then(Value::as_str).unwrap_or_default().to_string();
             let name = block.get("name").and_then(Value::as_str).unwrap_or_default();
             let input = block.get("input").cloned().unwrap_or(json!({}));
+            if name == "get_briefing" {
+                let period = input.get("period").and_then(Value::as_str).unwrap_or("day");
+                let date = input.get("date").and_then(parse_date).unwrap_or(ctx.now.date());
+                let built = {
+                    let db = ctx.db.lock().unwrap();
+                    crate::briefing::build(&db, period, date, ctx.now)
+                };
+                match built {
+                    Ok(b) => {
+                        session.briefing = b.agenda;
+                        results.push(json!({"type": "tool_result", "tool_use_id": id, "content": b.facts}));
+                    }
+                    Err(e) => results.push(json!({"type": "tool_result", "tool_use_id": id, "content": e, "is_error": true})),
+                }
+                continue;
+            }
             let outcome = {
                 let mut db = ctx.db.lock().unwrap();
                 exec_tool(&mut db, &ctx.default_time, ctx.default_len, ctx.now.date(), name, &input, &mut session.changes)
@@ -726,7 +757,7 @@ fn finish(app: &AppHandle, session: Session, final_text: String) -> CommandResul
     if t.is_empty() {
         CommandResult::error("I didn't catch that. Could you say it differently?")
     } else {
-        CommandResult { kind: "answer".into(), message: t.to_string(), summary: vec![], history_id: None }
+        CommandResult { kind: "answer".into(), message: t.to_string(), summary: session.briefing, history_id: None }
     }
 }
 
