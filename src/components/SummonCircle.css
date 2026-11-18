@@ -4,6 +4,13 @@
   top: 50%;
   translate: -50% -50%;
   pointer-events: none;
+  will-change: transform, opacity;
+}
+/* Each moving part is its own composited layer (see SummonCircle.tsx). */
+.ritual__layer {
+  position: absolute;
+  inset: 0;
+  will-change: transform, opacity;
 }
 .ritual svg {
   display: block;
@@ -13,10 +20,8 @@
   font-family: "Segoe UI Historic", "Segoe UI Symbol", serif;
   letter-spacing: 0;
 }
-.ritual__spin {
-  transform-box: fill-box;
-  transform-origin: center;
-}
+/* The rune rings spin by rotating their whole layer. Rotation uses the
+   `rotate` property, so it never fights motion over `transform`. */
 .ritual__spin--cw {
   animation: ritual-spin 14s linear infinite;
 }
@@ -29,12 +34,16 @@
 .ritual--summon .ritual__spin--ccw {
   animation-duration: 4.5s;
 }
-.ritual__rays {
+.ritual__fade > svg {
   animation: ritual-flicker 1.6s ease-in-out infinite;
+  will-change: opacity;
 }
 @keyframes ritual-spin {
+  from {
+    rotate: 0deg;
+  }
   to {
-    transform: rotate(360deg);
+    rotate: 360deg;
   }
 }
 @keyframes ritual-flicker {

@@ -31,6 +31,7 @@ import queue
 import re
 import sys
 import threading
+from concurrent.futures import ThreadPoolExecutor
 import time
 import urllib.request
 import zipfile
@@ -694,6 +695,8 @@ class Speaker:
         self.jobs: queue.Queue[tuple[int, str, float]] = queue.Queue()
         self.stop_flag = threading.Event()
         self.sr = 24000
+        # Renders the next sentence while the current one plays.
+        self.ahead = ThreadPoolExecutor(max_workers=1)
         threading.Thread(target=self._worker, daemon=True).start()
 
     def _download(self):
@@ -719,7 +722,9 @@ class Speaker:
                 from kokoro_onnx import Kokoro
 
                 so = ort.SessionOptions()
-                so.intra_op_num_threads = min(8, os.cpu_count() or 4)
+                # Half the cores: plenty for faster-than-real-time speech, and the
+                # app (which draws without the GPU) keeps the rest.
+                so.intra_op_num_threads = max(2, min(6, (os.cpu_count() or 4) // 2))
                 sess = ort.InferenceSession(os.path.join(self.dir, KOKORO_MODEL), so, providers=["CPUExecutionProvider"])
                 self.model = Kokoro.from_session(sess, os.path.join(self.dir, KOKORO_VOICE_FILE))
             self.used = time.time()
@@ -765,12 +770,16 @@ class Speaker:
             job_id, text, speed = self.jobs.get()
             self.stop_flag.clear()
             try:
-                # Speak sentence by sentence so long answers start quickly.
+                # Speak sentence by sentence so long answers start quickly, and
+                # render the next sentence while this one plays, so there's no
+                # gap between sentences while it's being made.
                 parts = [p for p in re.split(r"(?<=[.!?])\s+", text.strip()) if p]
-                for part in parts:
+                nxt = self.ahead.submit(self.render, parts[0], speed) if parts else None
+                for i in range(len(parts)):
                     if self.stop_flag.is_set():
                         break
-                    audio = self.render(part, speed)
+                    audio = nxt.result()
+                    nxt = self.ahead.submit(self.render, parts[i + 1], speed) if i + 1 < len(parts) else None
                     if self.stop_flag.is_set():
                         break
                     global _speaking_until
@@ -826,6 +835,34 @@ def stdin_reader(v: Voice, spk: Speaker):
     os._exit(0)
 
 
+def no_power_throttling():
+    """Opt out of Windows 11 "efficiency mode" (EcoQoS).
+
+    This engine has no window, so when another app is in front Windows may run
+    it on slow cores at low clock speed: speech then stalls mid-answer and the
+    wake word reacts late. Elise is a real-time assistant, so ask for full speed.
+    """
+    if sys.platform != "win32":
+        return
+    try:
+        import ctypes
+        from ctypes import wintypes
+
+        class PowerThrottlingState(ctypes.Structure):
+            _fields_ = [("Version", wintypes.ULONG), ("ControlMask", wintypes.ULONG), ("StateMask", wintypes.ULONG)]
+
+        # ControlMask = EXECUTION_SPEED | IGNORE_TIMER_RESOLUTION, StateMask = 0: never throttle.
+        st = PowerThrottlingState(1, 0x1 | 0x4, 0)
+        k32 = ctypes.windll.kernel32
+        k32.GetCurrentProcess.restype = wintypes.HANDLE
+        k32.SetProcessInformation.argtypes = [wintypes.HANDLE, ctypes.c_int, ctypes.c_void_p, wintypes.DWORD]
+        k32.SetProcessInformation.restype = wintypes.BOOL
+        ok = k32.SetProcessInformation(k32.GetCurrentProcess(), 4, ctypes.byref(st), ctypes.sizeof(st))  # 4 = ProcessPowerThrottling
+        log("power throttling off" if ok else "power throttling: not changed")
+    except Exception as e:  # noqa: BLE001
+        log("power throttling:", e)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--models", required=True)
@@ -843,6 +880,7 @@ def main():
         pass
     log("voice engine starting, models in", args.models)
     v = Voice(args.models)
+    no_power_throttling()
     spk = Speaker(args.models)
     v.speaker = spk
     threading.Thread(target=stdin_reader, args=(v, spk), daemon=True).start()

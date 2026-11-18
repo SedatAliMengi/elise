@@ -23,7 +23,7 @@
         "visible": false,
         "dragDropEnabled": false,
         "backgroundColor": "#0A0710",
-        "additionalBrowserArgs": "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection --disable-gpu"
+        "additionalBrowserArgs": "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection,UseEcoQoSForBackgroundProcess --disable-gpu"
       },
       {
         "label": "overlay",
@@ -39,7 +39,7 @@
         "shadow": false,
         "visible": false,
         "focus": false,
-        "additionalBrowserArgs": "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection --disable-gpu"
+        "additionalBrowserArgs": "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection,UseEcoQoSForBackgroundProcess --disable-gpu"
       },
       {
         "label": "stage",
@@ -56,7 +56,7 @@
         "dragDropEnabled": false,
         "backgroundColor": "#000000",
         "shadow": false,
-        "additionalBrowserArgs": "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection --disable-gpu"
+        "additionalBrowserArgs": "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection,UseEcoQoSForBackgroundProcess --disable-gpu"
       }
     ],
     "security": {
