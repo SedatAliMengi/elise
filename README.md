@@ -112,4 +112,14 @@ Then open **Settings → Elise's mind**, paste your API key and press **Save**. 
 
 ## License
 
-[MIT](LICENSE)
+elise is source-available under the **PolyForm Noncommercial License 1.0.0**.
+You're free to read, learn from, and use the code for personal and other
+noncommercial purposes. **Commercial use, including selling elise or any
+version of it, is not allowed without my permission.**
+
+Versions released before 18 November 2026 were licensed under the MIT License.
+From 18 November 2026 onward, elise is licensed under PolyForm Noncommercial 1.0.0.
+
+For commercial licensing, contact me through GitHub.
+
+Copyright (c) 2026 Sedat Ali Mengi
