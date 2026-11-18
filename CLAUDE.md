@@ -11,10 +11,15 @@ Tauri 2 (Rust) + React/TS/Vite. Single user ("Enigma"), local only.
   - `events.rs` create/edit/remove with scope (this / following / all) for repeating events.
   - `scheduler.rs` reminder thread: sleeps until next due (≤60 s), woken by `notify_changed`.
   - `llm.rs` command engine: Claude Messages API via raw reqwest, model `claude-haiku-4-5`, client tools
-    (create/update/delete/find_events, get_briefing, ask_clarification). Summary lines are built from real changes;
+    (create/update/delete/find_events, get_briefing, find_free_time, get_projects, ask_clarification).
+    `get_projects` is read only: commands never change the owner's task lists. Summary lines are built from real changes;
     for a briefing they are the agenda from `briefing.rs` (events, clashes, free time, computed locally).
   - `overlay.rs` overlay window modes Hidden / Compact (hover eye) / Expanded; geometry in physical px.
   - `projects.rs` Projects view rules (project cards + task lists, Elise's own list = list id `elise`, tags `for_now` / `done`); UI in `src/projects/` (`ProjectsView`, `TaskList`, `Starfield`: canvas stars, no blur)
+  - Performance without the GPU: never animate inside a large filtered SVG; split moving parts into their own
+    layers and animate only transform/opacity on the layer (see `SummonCircle.tsx`, and `Eye.tsx`: base / iris
+    layers clipped by the eyelid via `clip-path: url(#…)` / top). Measure with a trace.
+  - `ics.rs` calendar file import/export (Settings, folded at the bottom on purpose; one-time copy, not a sync).
   - **Nihil mode** (typing "nihil" to Elise): `lib/mode.ts` + `styles/nihil.css`. Colours are converted automatically from the existing CSS at the first switch;
     colours set in code must go through `tint()` / `isNihil()`; the eye uses the `HOLLOW` palette in `eyeArt.ts`. Setting: `nihil` in `settings.json`.
   - `checklist.rs` yearly checklist rules (this year: add/remove/tick; past: tick only; future: locked → `overlay::show_oracle`)

@@ -152,6 +152,60 @@ fn judge(x: &Value, turn: &Turn, before: &HashMap<String, Event>, after: &HashMa
             }
             (false, reasons.join(" | "))
         }
+        // Smart scheduling: the right number of new events, each passing the
+        // field checks, none on top of an existing event or of each other, and
+        // on different days when there are several.
+        "schedule" => {
+            if !deleted.is_empty() || !changed.is_empty() {
+                return (false, format!("also deleted {deleted:?} / changed {changed:?}"));
+            }
+            let want = x.get("count").and_then(Value::as_u64).unwrap_or(1) as usize;
+            if created.len() != want {
+                return (false, format!("created {} events, expected {want}", created.len()));
+            }
+            let mut bad = vec![];
+            for e in &created {
+                for b in check_event(e, x) {
+                    bad.push(format!("{}: {b}", e.title));
+                }
+                if let Some(m) = x.get("minutes").and_then(Value::as_i64) {
+                    let got = e.end.map(|end| (end - e.start).num_minutes()).unwrap_or(0);
+                    if got != m {
+                        bad.push(format!("{} lasts {got} min, expected {m}", e.title));
+                    }
+                }
+                if let Some(w) = x.get("within").and_then(Value::as_array) {
+                    let (a, b) = (w[0].as_str().unwrap_or("00:00"), w[1].as_str().unwrap_or("23:59"));
+                    let s = e.start.format("%H:%M").to_string();
+                    let en = e.end.map(|d| d.format("%H:%M").to_string()).unwrap_or_default();
+                    if s.as_str() < a || en.as_str() > b {
+                        bad.push(format!("{s}-{en} is outside {a}-{b}"));
+                    }
+                }
+                let end = e.end.unwrap_or(e.start);
+                for o in before.values().filter(|o| !o.all_day) {
+                    let len = crate::recur::duration(o);
+                    for st in crate::recur::occurrence_starts(o, e.start - chrono::Duration::days(1), end) {
+                        if st < end && st + len > e.start {
+                            bad.push(format!("{} at {} clashes with {}", e.title, e.start.format("%a %H:%M"), o.title));
+                        }
+                    }
+                }
+            }
+            let same_day_ok = x.get("same_day_ok").and_then(Value::as_bool).unwrap_or(false);
+            for (i, a) in created.iter().enumerate() {
+                for b in &created[i + 1..] {
+                    let a_end = a.end.unwrap_or(a.start);
+                    let b_end = b.end.unwrap_or(b.start);
+                    if a.start < b_end && b.start < a_end {
+                        bad.push(format!("{} and {} overlap", a.title, b.title));
+                    } else if !same_day_ok && a.start.date() == b.start.date() {
+                        bad.push(format!("two sessions on {}", a.start.format("%a")));
+                    }
+                }
+            }
+            (bad.is_empty(), bad.join("; "))
+        }
         "update" => {
             let t = x["target"].as_str().unwrap();
             let Some(e) = after.get(t) else { return (false, format!("{t} was deleted")) };
@@ -229,6 +283,19 @@ fn accuracy() {
         let mut db = Db::memory().unwrap();
         for e in &seed {
             db.upsert(e.clone()).unwrap();
+        }
+        // Optional project task lists: [{"name", "status"?, "tasks": [{"text", "done"?}]}].
+        for p in spec["projects"].as_array().into_iter().flatten() {
+            let pr = crate::projects::add_project(&db, p["name"].as_str().unwrap()).unwrap();
+            if let Some(st) = p["status"].as_str() {
+                crate::projects::set_status(&db, &pr.id, Some(st)).unwrap();
+            }
+            for t in p["tasks"].as_array().into_iter().flatten() {
+                let task = crate::projects::add_task(&db, &pr.id, t["text"].as_str().unwrap()).unwrap();
+                if t["done"].as_bool().unwrap_or(false) {
+                    db.task_set_done(&task.id, true).unwrap();
+                }
+            }
         }
         let before = all_events(&db);
         let db = Mutex::new(db);

@@ -1,10 +1,11 @@
-//! Daily and weekly briefings ("how's my day?", "brief me on next week").
+//! Daily and weekly briefings ("how's my day?", "brief me on next week") and
+//! the free-time search behind smart scheduling ("find me 2 hours for the gym").
 //!
 //! Everything here is worked out locally from the calendar: what's on, what
 //! clashes, where the free time is. The command engine gets the facts as text
-//! and speaks a short summary; the panel shows the agenda lines.
+//! (Claude only phrases them or picks a slot); the panel shows the agenda lines.
 
-use chrono::{Datelike, Duration, NaiveDate, NaiveDateTime, NaiveTime};
+use chrono::{Datelike, Duration, NaiveDate, NaiveDateTime, NaiveTime, Timelike};
 
 use crate::db::Db;
 use crate::events;
@@ -51,14 +52,31 @@ fn clashes(timed: &[&Occurrence]) -> Vec<(String, String, NaiveDateTime)> {
 /// Free blocks of at least an hour between DAY_START and DAY_END, starting no
 /// earlier than `not_before` (so "today" only counts the time still ahead).
 fn free_blocks(day: NaiveDate, timed: &[&Occurrence], not_before: NaiveDateTime) -> Vec<(NaiveDateTime, NaiveDateTime)> {
-    let open = day.and_time(NaiveTime::from_hms_opt(DAY_START, 0, 0).unwrap()).max(not_before);
-    let close = day.and_time(NaiveTime::from_hms_opt(DAY_END, 0, 0).unwrap());
+    let open = NaiveTime::from_hms_opt(DAY_START, 0, 0).unwrap();
+    let close = NaiveTime::from_hms_opt(DAY_END, 0, 0).unwrap();
+    gaps(day, timed, not_before, open, close, MIN_FREE_MIN)
+}
+
+/// Gaps of at least `min` minutes between `open` and `close` on `day`.
+fn gaps(
+    day: NaiveDate,
+    timed: &[&Occurrence],
+    not_before: NaiveDateTime,
+    open: NaiveTime,
+    close: NaiveTime,
+    min: i64,
+) -> Vec<(NaiveDateTime, NaiveDateTime)> {
+    let open = day.and_time(open).max(not_before);
+    let close = day.and_time(close);
+    if open >= close {
+        return vec![];
+    }
     let mut busy: Vec<(NaiveDateTime, NaiveDateTime)> = timed.iter().map(|o| (o.start, o.end)).collect();
     busy.sort();
     let mut out = Vec::new();
     let mut cur = open;
     for (s, e) in busy {
-        if s > cur && (s.min(close) - cur).num_minutes() >= MIN_FREE_MIN {
+        if s > cur && (s.min(close) - cur).num_minutes() >= min {
             out.push((cur, s.min(close)));
         }
         cur = cur.max(e);
@@ -66,7 +84,7 @@ fn free_blocks(day: NaiveDate, timed: &[&Occurrence], not_before: NaiveDateTime)
             break;
         }
     }
-    if cur < close && (close - cur).num_minutes() >= MIN_FREE_MIN {
+    if cur < close && (close - cur).num_minutes() >= min {
         out.push((cur, close));
     }
     out
@@ -191,6 +209,69 @@ pub fn build(db: &Db, period: &str, date: NaiveDate, now: NaiveDateTime) -> Resu
     Ok(Briefing { facts: facts.join("\n"), agenda })
 }
 
+/// The next quarter hour at or after `t` (a slot never starts at 14:07).
+fn round_up_15(t: NaiveDateTime) -> NaiveDateTime {
+    let base = t.with_second(0).unwrap().with_nanosecond(0).unwrap();
+    let m = base.minute() % 15;
+    if m == 0 && base == t {
+        base
+    } else {
+        base + Duration::minutes((15 - m) as i64)
+    }
+}
+
+/// Free time long enough for `minutes`, day by day from `from` to `to`
+/// (inclusive), between `earliest` and `latest` each day. Today only counts
+/// from now on. All-day events (birthdays, trips) don't block time.
+pub fn free_slots(
+    db: &Db,
+    from: NaiveDate,
+    to: NaiveDate,
+    earliest: NaiveTime,
+    latest: NaiveTime,
+    minutes: i64,
+    now: NaiveDateTime,
+) -> Result<String, String> {
+    let to = to.max(from).min(from + Duration::days(31));
+    let start = from.and_hms_opt(0, 0, 0).unwrap();
+    let end = (to + Duration::days(1)).and_hms_opt(0, 0, 0).unwrap();
+    let occ = events::list_occurrences(db, start, end)?;
+    let soon = round_up_15(now);
+    let mut lines = vec![format!(
+        "Free time of at least {minutes} minutes between {} and {}, {} to {}:",
+        earliest.format("%H:%M"),
+        latest.format("%H:%M"),
+        from.format("%a %Y-%m-%d"),
+        to.format("%a %Y-%m-%d")
+    )];
+    let mut any = false;
+    let mut day = from;
+    while day <= to {
+        let d0 = day.and_hms_opt(0, 0, 0).unwrap();
+        let mut timed: Vec<&Occurrence> = occ
+            .iter()
+            .filter(|o| !o.event.all_day && o.start < d0 + Duration::days(1) && o.end > d0)
+            .collect();
+        timed.sort_by_key(|o| o.start);
+        let free = gaps(day, &timed, if day == now.date() { soon } else { d0 }, earliest, latest, minutes);
+        if day >= now.date() {
+            let busy: Vec<String> = timed.iter().map(|o| format!("{}-{} {}", hm(o.start), hm(o.end), o.event.title)).collect();
+            lines.push(format!(
+                "{}: free {}{}",
+                day.format("%a %Y-%m-%d"),
+                if free.is_empty() { "none".into() } else { free.iter().map(|(s, e)| format!("{}-{}", hm(*s), hm(*e))).collect::<Vec<_>>().join(", ") },
+                if busy.is_empty() { String::new() } else { format!(" (busy: {})", busy.join(", ")) }
+            ));
+            any |= !free.is_empty();
+        }
+        day += Duration::days(1);
+    }
+    if !any {
+        lines.push("No free time that long in this range.".into());
+    }
+    Ok(lines.join("\n"))
+}
+
 fn ellipsize(items: &[String], max: usize) -> String {
     if items.len() <= max {
         items.join(", ")
@@ -236,6 +317,23 @@ mod tests {
         assert!(b.facts.contains("Free: 11:00-18:00"), "{}", b.facts);
         assert!(b.facts.contains("Free: 08:00-10:00"), "{}", b.facts);
         assert!(b.agenda.iter().any(|l| l == "Free · 11:00–18:00"), "{:?}", b.agenda);
+    }
+
+    #[test]
+    fn free_slots_respect_events_window_and_now() {
+        let mut db = Db::memory().unwrap();
+        events::create(&mut db, ev("Project", "2027-03-02T11:00", 60)).unwrap();
+        events::create(&mut db, ev("Dentist", "2027-03-02T15:00", 60)).unwrap();
+        let now = NaiveDateTime::parse_from_str("2027-03-01T19:07", "%Y-%m-%dT%H:%M").unwrap();
+        let t = |s: &str| NaiveTime::parse_from_str(s, "%H:%M").unwrap();
+        let d = |s: &str| NaiveDate::parse_from_str(s, "%Y-%m-%d").unwrap();
+        let out = free_slots(&db, d("2027-03-01"), d("2027-03-02"), t("08:00"), t("22:00"), 120, now).unwrap();
+        // today: from the next quarter hour only
+        assert!(out.contains("Mon 2027-03-01: free 19:15-22:00"), "{out}");
+        // tomorrow: the 1-hour gap between the two events is too short for 2 hours
+        assert!(out.contains("Tue 2027-03-02: free 08:00-11:00, 12:00-15:00, 16:00-22:00"), "{out}");
+        let evening = free_slots(&db, d("2027-03-02"), d("2027-03-02"), t("17:00"), t("22:00"), 90, now).unwrap();
+        assert!(evening.contains("free 17:00-22:00"), "{evening}");
     }
 
     #[test]

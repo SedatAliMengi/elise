@@ -112,6 +112,43 @@ pub fn reorder(db: &Db, list: &str, ids: &[String]) -> Result<(), String> {
     db.tasks_reorder(list, ids)
 }
 
+/// The task lists as text for the command engine's planner (read only:
+/// Elise never changes the owner's lists from a command). `name` narrows it to
+/// the projects whose name contains it, either way round, ignoring case.
+pub fn planner_text(db: &Db, name: Option<&str>) -> Result<String, String> {
+    let q = name.map(|n| n.trim().to_lowercase()).filter(|n| !n.is_empty());
+    let hit = |n: &str| q.as_ref().map_or(true, |q| {
+        let n = n.to_lowercase();
+        n.contains(q.as_str()) || q.contains(n.as_str())
+    });
+    let mut lines = vec!["Task lists, each in the owner's order (the first open task matters most):".to_string()];
+    let mut list = |label: String, tasks: &[ProjectTask]| {
+        let open: Vec<String> = tasks.iter().filter(|t| !t.done).enumerate().map(|(i, t)| format!("{}. {}", i + 1, t.text)).collect();
+        let done = tasks.iter().filter(|t| t.done).count();
+        lines.push(format!(
+            "- {label}: {}{}",
+            if open.is_empty() { "no open tasks".to_string() } else { format!("open tasks: {}", open.join(" ")) },
+            if done > 0 { format!(" ({done} done)") } else { String::new() }
+        ));
+    };
+    for p in db.projects()?.iter().filter(|p| hit(&p.name)) {
+        let tag = match p.status.as_deref() {
+            Some(FOR_NOW) => "finished for now",
+            Some(DONE) => "fully finished",
+            _ => "active",
+        };
+        list(format!("Project \"{}\" ({tag})", p.name), &p.tasks);
+    }
+    if hit("elise") {
+        list("Elise's own list".into(), &db.project_tasks(ELISE_LIST)?);
+    }
+    if lines.len() == 1 {
+        let names: Vec<String> = db.projects()?.into_iter().map(|p| p.name).collect();
+        lines.push(format!("No project matches. Projects: {}.", if names.is_empty() { "none".into() } else { names.join(", ") }));
+    }
+    Ok(lines.join("\n"))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -176,6 +213,25 @@ mod tests {
         assert_eq!(v.projects.len(), 1);
         assert!(db.project_tasks(&a.id).unwrap().is_empty());
         assert_eq!(texts(&v.elise), ["mine"]);
+    }
+
+    #[test]
+    fn planner_view() {
+        let db = Db::memory().unwrap();
+        let a = add_project(&db, "Barusu").unwrap();
+        let b = add_project(&db, "Dietia").unwrap();
+        add_task(&db, &a.id, "Fix the archive filter").unwrap();
+        let t = add_task(&db, &a.id, "Write README").unwrap();
+        add_task(&db, &a.id, "Test on Android").unwrap();
+        db.task_set_done(&t.id, true).unwrap();
+        set_status(&db, &b.id, Some(FOR_NOW)).unwrap();
+        let all = planner_text(&db, None).unwrap();
+        assert!(all.contains("Project \"Barusu\" (active): open tasks: 1. Fix the archive filter 2. Test on Android (1 done)"), "{all}");
+        assert!(all.contains("Project \"Dietia\" (finished for now): no open tasks"), "{all}");
+        assert!(all.contains("Elise's own list"));
+        let one = planner_text(&db, Some("barusu'nun")).unwrap();
+        assert!(one.contains("Barusu") && !one.contains("Dietia"), "{one}");
+        assert!(planner_text(&db, Some("nope")).unwrap().contains("No project matches. Projects: Barusu, Dietia."));
     }
 
     #[test]

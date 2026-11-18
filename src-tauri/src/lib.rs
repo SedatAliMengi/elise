@@ -2,6 +2,7 @@ mod briefing;
 mod checklist;
 mod db;
 mod events;
+mod ics;
 mod llm;
 mod model;
 mod overlay;
@@ -146,6 +147,24 @@ pub fn apply_settings(app: &AppHandle, next: Settings) -> CmdResult<Settings> {
 }
 
 // ---------------- commands: calendar ----------------
+
+/// Settings → Calendar file: save the whole calendar as .ics in Downloads.
+#[tauri::command]
+fn ics_export(app: AppHandle, state: tauri::State<AppState>) -> CmdResult<String> {
+    let dir = app.path().download_dir().map_err(|e| e.to_string())?;
+    let path = ics::export_to(&state.db.lock().unwrap(), &dir)?;
+    Ok(path.display().to_string())
+}
+
+/// Settings → Calendar file: add the events of an .ics file (text read by the page).
+#[tauri::command]
+fn ics_import(app: AppHandle, state: tauri::State<AppState>, text: String) -> CmdResult<ics::ImportReport> {
+    let rep = ics::import(&mut state.db.lock().unwrap(), &text)?;
+    if rep.added > 0 {
+        notify_changed(&app);
+    }
+    Ok(rep)
+}
 
 #[tauri::command]
 fn list_occurrences(state: tauri::State<AppState>, from: NaiveDateTime, to: NaiveDateTime) -> CmdResult<Vec<Occurrence>> {
@@ -587,6 +606,8 @@ pub fn run() {
             _ => {}
         })
         .invoke_handler(tauri::generate_handler![
+            ics_export,
+            ics_import,
             list_occurrences,
             get_event,
             create_event,

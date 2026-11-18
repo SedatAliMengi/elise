@@ -182,6 +182,11 @@ impl Db {
         Ok(self.query_events("SELECT * FROM events WHERE id = ?1", [id])?.pop())
     }
 
+    /// Every event (series, one-offs and changed occurrences), oldest first.
+    pub fn all_events(&self) -> DbResult<Vec<Event>> {
+        self.query_events("SELECT * FROM events ORDER BY start", [])
+    }
+
     /// Events that may have an occurrence overlapping `[from, to)`.
     pub fn events_in_range(&self, from: NaiveDateTime, to: NaiveDateTime) -> DbResult<Vec<Event>> {
         // Non-recurring: overlap check with a 1-day slack for all-day events.

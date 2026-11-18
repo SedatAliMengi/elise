@@ -82,6 +82,8 @@
     async invoke(cmd, args) {
       switch (cmd) {
         case "list_occurrences": return OCC.filter((o) => o.start < args.to && o.end > args.from);
+        case "ics_export": return "C:/Users/you/Downloads/Elise calendar 2026-11-19.ics";
+        case "ics_import": return { added: 48, skipped: 3, approximated: 1, failed: 0 };
         case "get_settings": return { ...SETTINGS };
         case "set_settings": Object.assign(SETTINGS, args.settings); return { ...SETTINGS };
         case "has_api_key": return true;

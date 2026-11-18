@@ -74,6 +74,18 @@ the day after tomorrow, haftaya = next week, bu = this, ertele = postpone, öne 
 cancel, hatırlat = remind, her = every, sabah = morning, öğlen = noon, akşam = evening. Keep the user's wording for titles.
 - Questions like \"what do I have on Friday?\" are answered in text: one or two short spoken-style sentences.
 - Briefings: \"how's my day\", \"brief me\", \"what does my week look like\", \"günüm nasıl\", \"bu hafta neler var\" and the like: call get_briefing (period day or week) and answer from its facts. The agenda is shown on screen, so don't read out every event: say how busy it is, the first thing coming up, any clash, and the biggest free stretch. A day briefing is two or three sentences, a week briefing three or four. \"This week\" or \"my week\" starts today; \"next week\" starts next Monday. A briefing with no date means today.
+- Smart scheduling: \"find me 2 hours for the gym this week\", \"fit in a haircut tomorrow afternoon\", \"make time to study on Saturday\", \"3 gym sessions next week\", \"bu hafta spora 2 saat bul\": call find_free_time first, then create_event in a slot it returned. Never put an event on top of another one. Length: what the user said, else the default event length. Time of day: morning 08:00-12:00, afternoon 12:00-17:00, evening 17:00-22:00, otherwise 08:00-22:00. Range: \"this week\" is today to Sunday, \"next week\" Monday to Sunday, a named day is that day. Pick the time a person would naturally choose for that activity (gym, sport, reading, dinner or a hobby in the evening; errands, appointments and work in working hours), otherwise the earliest slot that fits; start on the hour or half hour, and keep 30 minutes free after the event before the next one when the slot allows it. Several sessions go on different days, spread out. If nothing fits, say so and name the closest options instead of creating anything. \"Find me\", \"fit in\" and \"make time\" mean: add it now, never ask first. The title is the activity in its plain form (\"Gym\", \"Spor\", not \"Spora\"). Confirm in one short sentence with the day and time chosen. \"When am I free on Friday?\" is just a question: call find_free_time and answer, don't create anything.
+- Projects: the owner keeps projects with task lists (get_projects). You can read them but never change them. \
+\"What's left on Barusu?\" is answered from get_projects. Planning: \"plan my week around Barusu\", \"put my Barusu tasks \
+into tomorrow\", \"schedule Dietia's tasks\", \"Barusu görevlerini bu haftaya planla\": call get_projects, then \
+find_free_time, then one create_event per open task, in the list's order (first task first). Title: \"<project>: \
+<task in a few words>\", notes: \"Planned from project <project>: <full task>\". Block length: what the user said, \
+else 60 minutes. Hours: 09:00-18:00 unless the user names other times. At most 3 blocks a day unless asked, with 15 \
+minutes between blocks. Range: a named day is that day, \"this week\" today to Sunday (today only from now on), \
+otherwise the next 7 days. Skip done tasks and tasks that already have an upcoming event with the same title. Skip \
+projects tagged fully finished unless the user names them. Several projects at once: alternate between them. If not \
+everything fits, plan what fits and say how many are left. Don't ask first; confirm in one sentence (how many blocks, \
+which days).
 - Everything you write is read aloud: plain sentences only. Never use markdown, asterisks, bullets, dashes as \
 separators, headings or emoji. Say time ranges as \"from 3 to 4 PM\".
 - After making changes, reply with a very short confirmation (a few words). Never ask for confirmation first."
@@ -176,6 +188,31 @@ fn tools() -> Value {
                     "from": {"type": "string", "description": "YYYY-MM-DD"},
                     "to": {"type": "string", "description": "YYYY-MM-DD inclusive"}
                 }
+            }
+        },
+        {
+            "name": "get_projects",
+            "description": "Read the owner's projects and their task lists (open tasks in order, the first matters most). Read only.",
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string", "description": "Part of a project name; leave out for all projects"}
+                }
+            }
+        },
+        {
+            "name": "find_free_time",
+            "description": "Find free time long enough for a new event: for each day in the range, the free gaps between earliest and latest (today only from now on), and what's already there.",
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "minutes": {"type": "integer", "description": "How long the event lasts"},
+                    "from": {"type": "string", "description": "YYYY-MM-DD, first day to search; default today"},
+                    "to": {"type": "string", "description": "YYYY-MM-DD inclusive; default the same as from"},
+                    "earliest": {"type": "string", "description": "HH:MM, default 08:00"},
+                    "latest": {"type": "string", "description": "HH:MM, default 22:00"}
+                },
+                "required": ["minutes"]
             }
         },
         {
@@ -515,6 +552,7 @@ fn exec_tool(
                 Ok(ToolOutcome::Result(lines.join("\n")))
             }
         }
+        "get_projects" => Ok(ToolOutcome::Result(crate::projects::planner_text(db, str_field("name").as_deref())?)),
         "ask_clarification" => Ok(ToolOutcome::Clarify(str_field("question").unwrap_or_else(|| "Could you say that differently?".into()))),
         other => Err(format!("Unknown tool {other}")),
     }
@@ -679,6 +717,27 @@ pub async fn run_core(ctx: &Ctx<'_>, key: &str, session: &mut Session, text: &st
             let id = block.get("id").and_then(Value::as_str).unwrap_or_default().to_string();
             let name = block.get("name").and_then(Value::as_str).unwrap_or_default();
             let input = block.get("input").cloned().unwrap_or(json!({}));
+            if name == "find_free_time" {
+                let t = |k: &str, d: &str| {
+                    input
+                        .get(k)
+                        .and_then(Value::as_str)
+                        .and_then(crate::recur::parse_hhmm)
+                        .unwrap_or_else(|| crate::recur::parse_hhmm(d).unwrap())
+                };
+                let from = input.get("from").and_then(parse_date).unwrap_or(ctx.now.date());
+                let to = input.get("to").and_then(parse_date).unwrap_or(from);
+                let minutes = input.get("minutes").and_then(Value::as_i64).filter(|m| *m > 0).unwrap_or(ctx.default_len);
+                let found = {
+                    let db = ctx.db.lock().unwrap();
+                    crate::briefing::free_slots(&db, from, to, t("earliest", "08:00"), t("latest", "22:00"), minutes, ctx.now)
+                };
+                results.push(match found {
+                    Ok(text) => json!({"type": "tool_result", "tool_use_id": id, "content": text}),
+                    Err(e) => json!({"type": "tool_result", "tool_use_id": id, "content": e, "is_error": true}),
+                });
+                continue;
+            }
             if name == "get_briefing" {
                 let period = input.get("period").and_then(Value::as_str).unwrap_or("day");
                 let date = input.get("date").and_then(parse_date).unwrap_or(ctx.now.date());

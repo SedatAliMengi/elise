@@ -27,6 +27,9 @@ export const api = {
   deleteEvent: (id: string, occStart?: string | null, scope?: Scope) =>
     invoke<void>("delete_event", { id, occStart: occStart ?? null, scope: scope ?? "all" }),
   searchEvents: (query: string) => invoke<CalEvent[]>("search_events", { query }),
+  icsExport: () => invoke<string>("ics_export"),
+  icsImport: (text: string) =>
+    invoke<{ added: number; skipped: number; approximated: number; failed: number }>("ics_import", { text }),
 
   runCommand: (sessionId: string, text: string) => invoke<CommandResult>("run_command", { sessionId, text }),
   cancelSession: (sessionId: string) => invoke<void>("cancel_session", { sessionId }),

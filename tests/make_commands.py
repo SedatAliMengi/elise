@@ -168,7 +168,35 @@ add("briefing", "en", "Brief me on my week", action="none", answer_any=["dentist
 add("briefing", "tr", "Yarın günüm nasıl?", action="none", answer_any=["dişçi", "dentist", "proje", "project"])
 add("briefing", "en", "What does next week look like?", action="none")
 
-out = {"now": NOW, "seed": SEED, "cases": cases}
+# ---------- smart scheduling: find a free slot, then add it ----------
+# "now" is Thu 2026-10-01 10:00. Busy: today 13-14 lunch, 15-15:30 call; Fri 11-12 project, 15-16 dentist;
+# Mon 9-9:15 standup; Tue 18-19 gym.
+add("schedule", "en", "Find me 2 hours for the gym tomorrow", action="schedule", title_any=["gym"], start="2026-10-02", minutes=120)
+add("schedule", "en", "Fit in a haircut tomorrow afternoon", action="schedule", title_any=["hair"], start="2026-10-02", within=["12:00", "17:00"])
+add("schedule", "en", "Make time to study for 3 hours on Saturday", action="schedule", title_any=["study"], start="2026-10-03", minutes=180)
+add("schedule", "en", "Schedule 3 gym sessions of an hour next week", action="schedule", count=3, title_any=["gym"],
+    start=["2026-10-05", "2026-10-06", "2026-10-07", "2026-10-08", "2026-10-09", "2026-10-10", "2026-10-11"], minutes=60)
+add("schedule", "en", "Find an hour for a call with Tom this afternoon", action="schedule", title_any=["tom", "call"], start="2026-10-01", within=["12:00", "17:00"], minutes=60)
+add("schedule", "en", "When am I free on Friday?", action="none", answer_any=["8", "12", "16", "4 pm", "4pm", "morning", "afternoon", "evening"])
+add("schedule", "tr", "Yarın spora 2 saat bul", action="schedule", title_any=["spor", "gym"], start="2026-10-02", minutes=120)
+add("schedule", "tr", "Cumartesi akşam 1.5 saat kitap okumaya zaman ayır", action="schedule", title_any=["kitap", "oku", "read"], start="2026-10-03", within=["17:00", "22:00"], minutes=90)
+
+# ---------- projects as a planner: task lists become time blocks (lists are read only) ----------
+PROJECTS = [
+    {"name": "Barusu", "tasks": [{"text": "Fix the archive filter"}, {"text": "Write README", "done": True},
+                                 {"text": "Add exam notes export"}, {"text": "Test the APK on Android"}]},
+    {"name": "Dietia", "status": "for_now", "tasks": [{"text": "Meal photo upload"}]},
+    {"name": "Old site", "status": "done", "tasks": [{"text": "Migrate hosting"}]},
+]
+add("projects", "en", "Plan my Barusu tasks for tomorrow", action="schedule", count=3, same_day_ok=True,
+    title_any=["barusu"], start="2026-10-02", within=["09:00", "18:00"], minutes=60)
+add("projects", "en", "What's left on Barusu?", action="none", answer_any=["archive", "export", "android", "apk"])
+add("projects", "tr", "Barusu görevlerini bu haftaya planla", action="schedule", count=3, same_day_ok=True,
+    title_any=["barusu"], start=["2026-10-01", "2026-10-02", "2026-10-03", "2026-10-04"], within=["09:00", "18:00"])
+add("projects", "en", "Give each Barusu task 2 hours on Saturday", action="schedule", count=3, same_day_ok=True,
+    title_any=["barusu"], start="2026-10-03", minutes=120)
+
+out = {"now": NOW, "seed": SEED, "projects": PROJECTS, "cases": cases}
 path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "commands.json")
 with open(path, "w", encoding="utf-8") as f:
     json.dump(out, f, ensure_ascii=False, indent=1)

@@ -1,5 +1,5 @@
 import { motion } from "motion/react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api } from "../lib/api";
 import { speak } from "../lib/speech";
 import type { Settings } from "../lib/types";
@@ -38,6 +38,8 @@ export default function SettingsPanel({ settings, onClose }: Props) {
   const [busy, setBusy] = useState(false);
   const [capturing, setCapturing] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [fileMsg, setFileMsg] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
   const voice = useVoiceStatus();
 
   useEffect(() => {
@@ -258,6 +260,58 @@ export default function SettingsPanel({ settings, onClose }: Props) {
               </button>
             </div>
           </section>
+          {/* Out of the way on purpose: a one-time copy to or from other calendar apps. */}
+          <details className="set-file">
+            <summary>Calendar file (.ics)</summary>
+            <div className="set-row">
+              <div>
+                <div className="set-row__label">Export</div>
+                <div className="set-row__hint">Saves the whole calendar to Downloads, for Google Calendar, Outlook or a phone</div>
+              </div>
+              <button
+                className="btn"
+                onClick={() =>
+                  api
+                    .icsExport()
+                    .then((p) => setFileMsg(`Saved: ${p}`))
+                    .catch((e) => setFileMsg(String(e)))
+                }
+              >
+                Export
+              </button>
+            </div>
+            <div className="set-row">
+              <div>
+                <div className="set-row__label">Import</div>
+                <div className="set-row__hint">Adds the events of an .ics file; events already here are skipped</div>
+              </div>
+              <button className="btn" onClick={() => fileRef.current?.click()}>
+                Import…
+              </button>
+              <input
+                ref={fileRef}
+                type="file"
+                accept=".ics,text/calendar"
+                hidden
+                onChange={async (e) => {
+                  const f = e.target.files?.[0];
+                  e.target.value = "";
+                  if (!f) return;
+                  try {
+                    const r = await api.icsImport(await f.text());
+                    const parts = [`Added ${r.added} event${r.added === 1 ? "" : "s"}`];
+                    if (r.skipped) parts.push(`${r.skipped} already here`);
+                    if (r.approximated) parts.push(`${r.approximated} repeat rule${r.approximated === 1 ? "" : "s"} simplified`);
+                    if (r.failed) parts.push(`${r.failed} unreadable`);
+                    setFileMsg(parts.join(" · "));
+                  } catch (er) {
+                    setFileMsg(String(er));
+                  }
+                }}
+              />
+            </div>
+            {fileMsg && <div className="set-msg">{fileMsg}</div>}
+          </details>
           {err && <div className="set-msg bad">{err}</div>}
         </div>
       </motion.div>
