@@ -7,15 +7,38 @@
   display: block;
   overflow: visible;
 }
+/* The eye is a stack of layers (see Eye.tsx). */
+.eye__stack {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+.eye__stack > svg,
+.eye__layer,
+.eye__layer > svg {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+.eye__layer {
+  width: 100%;
+  height: 100%;
+}
+.eye__glance,
+.eye__turn {
+  will-change: transform;
+}
 .eye--clickable {
   cursor: pointer;
 }
 
-/* Elise renders without the GPU, and any change inside the eye repaints all of
-   it. So the slow, always-running motions below move in steps on one shared
-   clock of 12 ticks a second (every duration and delay is a multiple of 1/12 s):
-   the eye repaints 12 times a second instead of 60, and at these speeds the
-   steps can't be seen. Blinks, glances and the pupil stay fully smooth. */
+/* Elise renders without the GPU, and any change inside an <svg> repaints that
+   layer. The turning parts of the iris (star, sparkles, tick ring) are layers of
+   their own and turn smoothly by rotating the whole layer, which redraws
+   nothing. The slow glows and twinkles still step on one shared clock of 12
+   ticks a second (every duration and delay is a multiple of 1/12 s): at those
+   speeds the steps can't be seen, and the layers they're on repaint 12 times a
+   second instead of 60. */
 
 /* slow glow "breathing" */
 .eye__aura,
@@ -41,31 +64,32 @@
 
 /* the compass star turns slowly; the sparkles drift the other way */
 .eye__star {
-  animation: eye-spin 60s steps(720) infinite;
+  animation: eye-turn 60s linear infinite;
 }
 .eye__sparkles {
-  animation: eye-spin 90s steps(1080) infinite reverse;
+  animation: eye-turn 90s linear infinite reverse;
 }
 /* the engraved tick ring turns the other way, very slowly */
 .eye__ticks {
-  animation: eye-spin 240s steps(2880) infinite reverse;
+  animation: eye-turn 240s linear infinite reverse;
 }
-/* thinking: everything turns fast, so it steps twice as finely (24 a second) */
+/* thinking: everything turns fast */
 .eye--thinking .eye__ticks {
   animation-duration: 14s;
-  animation-timing-function: steps(336);
 }
 .eye--thinking .eye__star {
   animation-duration: 5s;
-  animation-timing-function: steps(120);
 }
 .eye--thinking .eye__sparkles {
   animation-duration: 2.5s;
-  animation-timing-function: steps(60);
 }
-@keyframes eye-spin {
+/* `rotate`, not `transform`, so nothing else on the layer can fight it */
+@keyframes eye-turn {
+  from {
+    rotate: 0deg;
+  }
   to {
-    transform: rotate(360deg);
+    rotate: 360deg;
   }
 }
 
@@ -103,10 +127,10 @@
 }
 
 /* opacity is owned by motion, so dim the hover eye with a filter instead */
-.eye--dim svg {
+.eye--dim .eye__stack {
   filter: brightness(0.82);
   transition: filter 0.3s;
 }
-.eye--dim:hover svg {
+.eye--dim:hover .eye__stack {
   filter: none;
 }

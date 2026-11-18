@@ -76,5 +76,6 @@
   opacity: 0.75;
   transform-box: fill-box;
   transform-origin: center;
-  animation: eye-spin 240s steps(2880) infinite;
+  will-change: transform;
+  animation: eye-turn 240s linear infinite;
 }

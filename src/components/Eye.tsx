@@ -45,6 +45,7 @@ import "./Eye.css";
 
 const rand = (a: number, b: number) => a + Math.random() * (b - a);
 const BOX: React.CSSProperties = { transformBox: "fill-box", transformOrigin: "center" };
+const [VB_X, VB_Y, VB_W] = VIEWBOX.split(" ").map(Number);
 /** `open` runs from SHUT (lids together) to 1 (open); a little above 1 is the overshoot when she wakes. */
 const SHUT = 0.04;
 const closedness = (open: number) => Math.max(0, Math.min(1, (1 - open) / (1 - SHUT)));
@@ -84,10 +85,13 @@ export default function Eye({ state, size = 140, level = 0, dim, onClick, onMous
   const shadeTf = useTransform(open, (v) => `translate(0px, ${(LID_TRAVEL * closedness(v)).toFixed(1)}px)`);
   const wideTf = useTransform(open, (v) => `scale(${v > 1 ? 1 + (v - 1) * 1.2 : 1})`);
 
-  // Glances settle quickly: while the iris moves the whole eye repaints.
   const lookX = useSpring(0, { stiffness: 140, damping: 22 });
   const lookY = useSpring(0, { stiffness: 140, damping: 22 });
-  const irisTf = useTransform([lookX, lookY], ([x, y]) => `translate(${x}px, ${y}px)`);
+  // The iris is its own layer, so a glance moves it without redrawing anything.
+  const sizeRef = useRef(size);
+  sizeRef.current = size;
+  const glanceX = useTransform(lookX, (x) => (x * sizeRef.current) / VB_W);
+  const glanceY = useTransform(lookY, (y) => (y * sizeRef.current) / VB_W);
   const pupil = useSpring(1, { stiffness: 220, damping: 18 });
   // Nihil's pupil is a slit: the same pupil, squeezed.
   const slitX = useMotionValue(pal.slit ? pal.slit[0] : 1);
@@ -199,6 +203,20 @@ export default function Eye({ state, size = 140, level = 0, dim, onClick, onMous
     else pupil.set(1);
   }, [state, level, pupil]);
 
+  // The layers are HTML boxes the size of the eye; this maps the artwork's
+  // coordinates (VIEWBOX) onto them. The iris centre is the artwork's origin.
+  const scale = size / VB_W;
+  const ox = -VB_X * scale;
+  const oy = -VB_Y * scale;
+  const toBox = `matrix(${scale} 0 0 ${scale} ${ox} ${oy})`;
+  const origin = `${ox}px ${oy}px`;
+  const svgProps = { viewBox: VIEWBOX, width: size, height: size * ASPECT, overflow: "visible" } as const;
+  const turning = (cls: string, children: React.ReactNode) => (
+    <div className={`eye__layer eye__turn ${cls}`} style={{ transformOrigin: origin }}>
+      <svg {...svgProps}>{children}</svg>
+    </div>
+  );
+
   return (
     <motion.div
       className={`eye eye--${state} ${dim ? "eye--dim" : ""} ${onClick ? "eye--clickable" : ""} ${className ?? ""}`}
@@ -213,19 +231,33 @@ export default function Eye({ state, size = 140, level = 0, dim, onClick, onMous
       role={onClick ? "button" : undefined}
       aria-label={title ?? "Elise"}
     >
-      <svg viewBox={VIEWBOX} width={size} height={size * ASPECT} overflow="visible">
-        <defs dangerouslySetInnerHTML={art.defs} />
-        <defs>
-          {/* these two follow the eyelid */}
-          <clipPath id={id("lid")}>
-            <motion.path d={lidClipD} />
-          </clipPath>
-          <clipPath id={id("uc")}>
-            <motion.path d={upperD} />
-          </clipPath>
-        </defs>
+      {/*
+        Layers, so that what moves all the time never makes the rest redraw
+        (Elise draws without the GPU): the base (glow, lids, lashes, the white),
+        then the iris, clipped to the opening and the eyelid and moved as one
+        when she glances, with the tick ring, star and sparkles each on a layer
+        of their own that turns smoothly; on top, the lid's shadow and edge.
+      */}
+      <motion.div className="eye__stack" style={{ transform: wideTf, transformOrigin: origin }}>
+        <svg {...svgProps}>
+          <defs dangerouslySetInnerHTML={art.defs} />
+          <defs>
+            {/* these follow the eyelid */}
+            <clipPath id={id("lid")}>
+              <motion.path d={lidClipD} />
+            </clipPath>
+            <clipPath id={id("uc")}>
+              <motion.path d={upperD} />
+            </clipPath>
+            {/* the same clips, mapped onto the HTML iris layers */}
+            <clipPath id={id("blid")}>
+              <motion.path d={lidClipD} transform={toBox} />
+            </clipPath>
+            <clipPath id={id("bop")}>
+              <path d={OPENING} transform={toBox} />
+            </clipPath>
+          </defs>
 
-        <motion.g style={{ ...BOX, transform: wideTf }}>
           {/* soft light around and below the eye */}
           <ellipse cx="0" cy="70" rx="200" ry="110" fill={`url(#${id("ha")})`} className="eye__underglow" />
           {/* the glow behind the eyeball fades as the lid shuts, and the lid's own skin is black */}
@@ -243,12 +275,18 @@ export default function Eye({ state, size = 140, level = 0, dim, onClick, onMous
           </g>
           <g dangerouslySetInnerHTML={art.lower} />
 
-          {/* the eyeball, hidden above the lid's edge */}
+          {/* the white of the eye, hidden above the lid's edge */}
           <g clipPath={`url(#${id("lid")})`}>
             <path d={OPENING} fill={`url(#${id("sc")})`} />
-            <g clipPath={`url(#${id("op")})`}>
-              <g dangerouslySetInnerHTML={art.rim} />
-              <motion.g style={{ transform: irisTf }}>
+            <g clipPath={`url(#${id("op")})`} dangerouslySetInnerHTML={art.rim} />
+          </g>
+        </svg>
+
+        {/* the iris */}
+        <div className="eye__layer" style={{ clipPath: `url(#${id("blid")})` }}>
+          <div className="eye__layer" style={{ clipPath: `url(#${id("bop")})` }}>
+            <motion.div className="eye__layer eye__glance" style={{ x: glanceX, y: glanceY }}>
+              <svg {...svgProps}>
                 <circle r={IRIS_R} fill={`url(#${id("ir")})`} />
                 <g dangerouslySetInnerHTML={art.iris} />
                 <g>
@@ -266,36 +304,41 @@ export default function Eye({ state, size = 140, level = 0, dim, onClick, onMous
                   ))}
                 </g>
                 <g dangerouslySetInnerHTML={art.glints} />
-                <g className="eye__ticks" style={BOX} dangerouslySetInnerHTML={art.ticks} />
+              </svg>
+              {turning("eye__ticks", <g dangerouslySetInnerHTML={art.ticks} />)}
+              <svg {...svgProps}>
                 <g dangerouslySetInnerHTML={art.irisRim} />
-                <g className="eye__star" style={BOX}>
-                  <g dangerouslySetInnerHTML={art.star} />
-                  <circle r="102" fill="none" />
-                </g>
-                <g className="eye__sparkles" style={BOX}>
-                  {SPARKLES.map((d, i) => (
-                    <path key={i} d={d} fill={`url(#${id("sv")})`} />
-                  ))}
-                </g>
+              </svg>
+              {turning("eye__star", <g dangerouslySetInnerHTML={art.star} />)}
+              {turning(
+                "eye__sparkles",
+                SPARKLES.map((d, i) => <path key={i} d={d} fill={`url(#${id("sv")})`} />),
+              )}
+              <svg {...svgProps}>
                 <g dangerouslySetInnerHTML={art.socket} />
                 <motion.g style={{ ...BOX, transform: pupilTf }}>
                   <circle r="24" fill={pal.pupilGlow} filter={`url(#${id("b2")})`} className="eye__pupil-glow" />
                   <circle r="21" fill={`url(#${id("pu")})`} className="eye__pupil" />
                   <g dangerouslySetInnerHTML={art.pupil} />
                 </motion.g>
-              </motion.g>
-              {/* the lid's shadow on the eye, moving with the lid */}
+              </svg>
+            </motion.div>
+          </div>
+        </div>
+
+        {/* the lid's shadow on the eye and the lid's edge, moving with the lid */}
+        <svg {...svgProps}>
+          <g clipPath={`url(#${id("lid")})`}>
+            <g clipPath={`url(#${id("op")})`}>
               <motion.rect x="-200" y="-150" width="400" height="150" fill={`url(#${id("ls")})`} style={{ transform: shadeTf }} />
             </g>
           </g>
-
-          {/* the lid's edge: a clean line where the lid meets the eye */}
           <g clipPath={`url(#${id("op")})`}>
             <motion.path d={edgeD} fill="none" stroke="#000" strokeWidth="9" strokeLinecap="round" style={{ opacity: edgeShade }} />
             <motion.path d={edgeD} fill="none" stroke={pal.lidEdge} strokeWidth="3" strokeLinecap="round" style={{ opacity: edgeOpacity }} />
           </g>
-        </motion.g>
-      </svg>
+        </svg>
+      </motion.div>
     </motion.div>
   );
 }
