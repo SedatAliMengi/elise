@@ -1,0 +1,80 @@
+/* Nihil mode: red and black only. Typing "nihil" to Elise switches it (see
+   lib/mode.ts). Almost all of the recolouring is automatic: mode.ts re-emits
+   every colour in the app's stylesheets as a red or a black. This file only
+   holds what that can't do: the motifs, and the few places where the automatic
+   colour isn't the one wanted. */
+
+:root[data-mode="nihil"] {
+  color-scheme: dark;
+}
+
+/* a red glow rising from the bottom of every window */
+:root[data-mode="nihil"] .app::after,
+:root[data-mode="nihil"] .projects::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 25;
+  pointer-events: none;
+  background: radial-gradient(1200px 360px at 50% 112%, rgba(190, 0, 0, 0.22), transparent 70%);
+}
+:root[data-mode="nihil"] .projects::after {
+  position: absolute;
+  z-index: 1;
+}
+
+/* the line through her eye turns red, with a row of tick marks beneath it */
+:root[data-mode="nihil"] .titlebar__line {
+  box-shadow:
+    0 0 6px rgba(255, 30, 20, 0.5),
+    0 0 14px rgba(255, 30, 20, 0.2);
+}
+:root[data-mode="nihil"] .titlebar__line--l {
+  background: linear-gradient(90deg, rgba(208, 16, 16, 0), rgba(208, 16, 16, 0.4) 40%, rgb(230, 20, 16));
+}
+:root[data-mode="nihil"] .titlebar__line--r {
+  background: linear-gradient(270deg, rgba(208, 16, 16, 0), rgba(208, 16, 16, 0.4) 40%, rgb(230, 20, 16));
+}
+:root[data-mode="nihil"] .titlebar::before {
+  content: "";
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  top: 50px;
+  height: 5px;
+  pointer-events: none;
+  background: repeating-linear-gradient(90deg, rgb(176, 0, 0) 0 1px, transparent 1px 9px);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 12%, #000 40%, transparent 46%, transparent 54%, #000 60%, #000 88%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 12%, #000 40%, transparent 46%, transparent 54%, #000 60%, #000 88%, transparent);
+}
+
+/* solid red buttons carry black text */
+:root[data-mode="nihil"] .btn.primary,
+:root[data-mode="nihil"] .tasks__go {
+  color: #050000;
+}
+
+/* her star turns the other way, and her pupil beats faster */
+:root[data-mode="nihil"] .eye__star {
+  animation-direction: reverse;
+}
+:root[data-mode="nihil"] .eye__pupil-glow {
+  animation-duration: 2s;
+  animation-timing-function: steps(12);
+}
+
+/* Projects: a rune circle turns slowly behind her */
+.pelise__rune {
+  position: absolute;
+  left: 0;
+  top: 0;
+  overflow: visible;
+  pointer-events: none;
+  fill: none;
+  stroke: rgb(176, 0, 0);
+  stroke-width: 0.8;
+  opacity: 0.75;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: eye-spin 240s steps(2880) infinite;
+}

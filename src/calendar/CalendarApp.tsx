@@ -15,6 +15,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api, on } from "../lib/api";
 import { fromNaive, monthGrid, toNaive, weekDays, weekStartsOn } from "../lib/dates";
 import type { CalEvent, Scope } from "../lib/types";
+import { useNihil } from "../lib/mode";
 import { useSettings } from "../lib/useSettings";
 import DayAgenda from "./DayAgenda";
 import EventEditor, { type EditorTarget } from "./EventEditor";
@@ -37,6 +38,7 @@ interface ScopeReq {
 
 export default function CalendarApp() {
   const settings = useSettings();
+  useNihil(); // event colours are computed while rendering: redraw when the mode changes
   const monday = settings.weekStartsMonday;
   const [view, setView] = useState<View>("month");
   const [cursor, setCursor] = useState(() => new Date());

@@ -186,10 +186,8 @@ fn speed(app: &AppHandle) -> f64 {
 
 /// Pre-render the phrases Elise says most, so they play instantly.
 pub fn prewarm(app: &AppHandle) {
-    let name = app.state::<AppState>().settings.lock().unwrap().user_name.clone();
-    let name = if name.trim().is_empty() { "Enigma".to_string() } else { name };
     let texts = [
-        format!("Hello {name}, what is your command?"),
+        "Hello, sir.".to_string(),
         "Understood.".to_string(),
         "Undone.".to_string(),
         "As you wish.".to_string(),

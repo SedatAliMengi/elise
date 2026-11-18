@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { isNihil } from "../lib/mode";
 
 /**
  * Slow drifting stars behind the Projects view.
@@ -19,6 +20,8 @@ interface Star {
 }
 
 const TINTS = ["237,230,247", "200,170,255", "255,190,200", "170,200,255"];
+/** Nihil: the stars burn red, like embers. */
+const EMBERS = ["255,70,50", "255,130,110", "200,20,10", "255,40,30"];
 const FRAME_MS = 33;
 
 export default function Starfield() {
@@ -56,6 +59,7 @@ export default function Starfield() {
 
     const draw = (dt: number, now: number) => {
       ctx.clearRect(0, 0, w, h);
+      const TINT = isNihil() ? EMBERS : TINTS;
       for (const s of stars) {
         // Everything slides slowly to the left and a little upward.
         s.x -= (2 + s.z * 9) * dt;
@@ -64,11 +68,11 @@ export default function Starfield() {
         if (s.y < -2) s.y = h + 2;
         const twinkle = 0.62 + 0.38 * Math.sin(s.phase + now * 0.001 * s.speed);
         const size = 0.7 + s.z * 1.7;
-        ctx.fillStyle = `rgba(${TINTS[s.tint]},${(0.22 + s.z * 0.7) * twinkle})`;
+        ctx.fillStyle = `rgba(${TINT[s.tint]},${(0.22 + s.z * 0.7) * twinkle})`;
         ctx.fillRect(s.x, s.y, size, size);
         if (s.z > 0.8) {
           // The nearest few get a faint cross, like a lens flare.
-          ctx.fillStyle = `rgba(${TINTS[s.tint]},${0.16 * twinkle})`;
+          ctx.fillStyle = `rgba(${TINT[s.tint]},${0.16 * twinkle})`;
           ctx.fillRect(s.x - size * 1.6, s.y + size * 0.3, size * 4.2, size * 0.4);
           ctx.fillRect(s.x + size * 0.3, s.y - size * 1.6, size * 0.4, size * 4.2);
         }
@@ -81,8 +85,8 @@ export default function Starfield() {
           const x = shoot.x - k * 260;
           const y = shoot.y + k * 110;
           const g = ctx.createLinearGradient(x, y, x + 90, y - 38);
-          g.addColorStop(0, `rgba(255,255,255,${0.85 * (1 - k)})`);
-          g.addColorStop(1, "rgba(180,76,255,0)");
+          g.addColorStop(0, `rgba(${isNihil() ? "255,90,70" : "255,255,255"},${0.85 * (1 - k)})`);
+          g.addColorStop(1, isNihil() ? "rgba(160,0,0,0)" : "rgba(180,76,255,0)");
           ctx.strokeStyle = g;
           ctx.lineWidth = 1.2;
           ctx.beginPath();

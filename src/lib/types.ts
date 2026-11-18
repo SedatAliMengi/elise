@@ -58,6 +58,8 @@ export interface Settings {
   weekStartsMonday: boolean;
   time24h: boolean;
   followUp: boolean;
+  /** Nihil mode: the whole app in red and black. Toggled by typing "nihil" to Elise. */
+  nihil: boolean;
 }
 
 export interface CommandResult {

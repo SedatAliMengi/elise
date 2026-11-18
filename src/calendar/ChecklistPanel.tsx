@@ -1,3 +1,4 @@
+import { isNihil } from "../lib/mode";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api, on } from "../lib/api";
@@ -228,11 +229,11 @@ function Ring({ done, total }: { done: number; total: number }) {
       <svg width="46" height="46" viewBox="0 0 46 46">
         <defs>
           <linearGradient id="ck-ring" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0" stopColor="#b44cff" />
+            <stop offset="0" stopColor={isNihil() ? "#7a0000" : "#b44cff"} />
             <stop offset="1" stopColor="#ff2a2a" />
           </linearGradient>
         </defs>
-        <circle cx="23" cy="23" r={r} fill="none" stroke="#271a40" strokeWidth="3" />
+        <circle cx="23" cy="23" r={r} fill="none" stroke={isNihil() ? "#2a0606" : "#271a40"} strokeWidth="3" />
         <motion.circle
           cx="23"
           cy="23"

@@ -20,6 +20,8 @@ pub struct Settings {
     pub time_24h: bool,
     /// After each command Elise asks "Anything else?" and keeps listening.
     pub follow_up: bool,
+    /// Nihil mode: the whole app in red and black (typed "nihil" toggles it).
+    pub nihil: bool,
 }
 
 impl Default for Settings {
@@ -38,6 +40,7 @@ impl Default for Settings {
             week_starts_monday: true,
             time_24h: true,
             follow_up: true,
+            nihil: false,
         }
     }
 }

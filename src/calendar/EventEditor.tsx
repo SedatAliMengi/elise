@@ -1,3 +1,4 @@
+import { tint } from "../lib/mode";
 import { addMinutes, differenceInMinutes, format, parse } from "date-fns";
 import { motion } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -160,7 +161,7 @@ export default function EventEditor({ target, defaultReminderTime, onSave, onDel
 
           <div className="editor__colors">
             {EVENT_COLORS.map((c) => (
-              <button key={c} className={`swatch ${color === c ? "active" : ""}`} style={{ background: c }} onClick={() => setColor(c)} />
+              <button key={c} className={`swatch ${color === c ? "active" : ""}`} style={{ background: tint(c) }} onClick={() => setColor(c)} />
             ))}
           </div>
 

@@ -36,7 +36,7 @@
 
   const which = new URLSearchParams(location.search).get("window") || "main";
   const SETTINGS = { userName: "Enigma", voiceResponses: false, voiceRate: 1, wakeWord: true, hotkey: "Ctrl+Alt+E", hoverMode: false,
-    hoverPos: null, autostart: true, defaultReminderTime: "09:00", defaultEventMinutes: 60, weekStartsMonday: true, time24h: true };
+    hoverPos: null, autostart: true, defaultReminderTime: "09:00", defaultEventMinutes: 60, weekStartsMonday: true, time24h: true, followUp: true, nihil: false };
   const params = new URLSearchParams(location.search);
   const CUR = today.getFullYear();
   const LIST = [
@@ -82,7 +82,8 @@
     async invoke(cmd, args) {
       switch (cmd) {
         case "list_occurrences": return OCC.filter((o) => o.start < args.to && o.end > args.from);
-        case "get_settings": return SETTINGS;
+        case "get_settings": return { ...SETTINGS };
+        case "set_settings": Object.assign(SETTINGS, args.settings); return { ...SETTINGS };
         case "has_api_key": return true;
         case "voice_status": return { available: true, message: "" };
         case "is_calendar_visible": return true;

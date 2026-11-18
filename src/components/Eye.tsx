@@ -1,12 +1,14 @@
 import { animate, motion, useMotionValue, useSpring, useTransform } from "motion/react";
-import { useEffect, useId, useMemo, useRef } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { isNihil, onMode } from "../lib/mode";
 import type { EyeState } from "../lib/types";
 import {
   ASPECT,
-  COLORS as C,
   DOTS,
+  HOLLOW,
   IRIS_R,
   LID_TRAVEL,
+  NORMAL,
   OPENING,
   SPARKLES,
   UPPER_BEVEL_WIDTHS,
@@ -31,6 +33,8 @@ import "./Eye.css";
  * Elise's eye (traced from the user's reference art, detailed model in
  * eyeArt.ts): steel lashes, a shaded white, a purple starfield iris with
  * fibres, an engraved tick ring and a cut-metal compass star, and a red pupil.
+ * In Nihil mode it wears the HOLLOW palette: a black void with red line-work
+ * and a glowing slit pupil. The change happens behind a blink.
  *
  * Motion: a real upper eyelid comes down to blink, close and open (the lashes
  * ride on it); the compass star turns slowly, the sparkles and the tick ring
@@ -66,6 +70,8 @@ interface Props {
 export default function Eye({ state, size = 140, level = 0, dim, onClick, onMouseDown, onContextMenu, title, className, appearDelay = 0 }: Props) {
   const uid = useId().replace(/[^a-zA-Z0-9]/g, "");
   const id = (n: string) => `${uid}${n}`;
+  const [nihil, setNihil] = useState(isNihil);
+  const pal = nihil ? HOLLOW : NORMAL;
 
   const open = useMotionValue(state === "appearing" || state === "closed" ? SHUT : 1);
   // The eyelid: every shape that follows the lid is derived from `open`.
@@ -78,29 +84,53 @@ export default function Eye({ state, size = 140, level = 0, dim, onClick, onMous
   const shadeTf = useTransform(open, (v) => `translate(0px, ${(LID_TRAVEL * closedness(v)).toFixed(1)}px)`);
   const wideTf = useTransform(open, (v) => `scale(${v > 1 ? 1 + (v - 1) * 1.2 : 1})`);
 
+  // Glances settle quickly: while the iris moves the whole eye repaints.
   const lookX = useSpring(0, { stiffness: 140, damping: 22 });
   const lookY = useSpring(0, { stiffness: 140, damping: 22 });
   const irisTf = useTransform([lookX, lookY], ([x, y]) => `translate(${x}px, ${y}px)`);
   const pupil = useSpring(1, { stiffness: 220, damping: 18 });
-  const pupilTf = useTransform(pupil, (p) => `scale(${p})`);
+  // Nihil's pupil is a slit: the same pupil, squeezed.
+  const slitX = useMotionValue(pal.slit ? pal.slit[0] : 1);
+  const slitY = useMotionValue(pal.slit ? pal.slit[1] : 1);
+  useEffect(() => {
+    slitX.set(pal.slit ? pal.slit[0] : 1);
+    slitY.set(pal.slit ? pal.slit[1] : 1);
+  }, [pal, slitX, slitY]);
+  const pupilTf = useTransform([pupil, slitX, slitY], ([p, x, y]: number[]) => `scale(${p * x}, ${p * y})`);
   const stateRef = useRef(state);
   stateRef.current = state;
 
-  // The fixed artwork, built once per eye.
+  // The fixed artwork, built once per eye and palette.
   const art = useMemo(
     () => ({
-      defs: html(eyeDefs(uid)),
-      lower: html(lowerLashes(uid)),
-      rim: html(scleraRim()),
-      iris: html(irisDetail(uid)),
-      glints: html(irisGlints()),
-      ticks: html(irisTicks()),
+      defs: html(eyeDefs(uid, pal)),
+      lower: html(lowerLashes(uid, pal)),
+      rim: html(scleraRim(pal)),
+      iris: html(irisDetail(uid, pal)),
+      glints: html(irisGlints(pal)),
+      ticks: html(irisTicks(pal)),
       irisRim: html(irisRim(uid)),
-      star: html(compassStar()),
-      socket: html(pupilSocket(uid)),
-      pupil: html(pupilDetail()),
+      star: html(compassStar(pal)),
+      socket: html(pupilSocket(uid, pal)),
+      pupil: html(pupilDetail(pal)),
     }),
-    [uid],
+    [uid, pal],
+  );
+
+  // Nihil and back: shut, change behind the lid, open.
+  useEffect(
+    () =>
+      onMode((phase, next) => {
+        const s = stateRef.current;
+        const showing = s === "idle" || s === "listening" || s === "thinking" || s === "speaking" || s === "error";
+        if (phase === "closing") {
+          if (showing) animate(open, SHUT, { duration: 0.17, ease: "easeIn" });
+          return;
+        }
+        setNihil(next);
+        if (showing) animate(open, [SHUT, 1.05, 1], { duration: 0.6, times: [0, 0.72, 1], ease: [0.22, 1, 0.36, 1], delay: 0.13 });
+      }),
+    [open],
   );
 
   // Open / close with the state.
@@ -131,7 +161,7 @@ export default function Eye({ state, size = 140, level = 0, dim, onClick, onMous
     const loop = () => {
       t = window.setTimeout(() => {
         const s = stateRef.current;
-        if (s === "idle" || s === "listening" || s === "speaking") {
+        if ((s === "idle" || s === "listening" || s === "speaking") && open.get() > 0.95) {
           animate(open, [1, SHUT, 1], { duration: 0.26, times: [0, 0.4, 1], ease: "easeInOut" });
         }
         loop();
@@ -200,16 +230,16 @@ export default function Eye({ state, size = 140, level = 0, dim, onClick, onMous
           <ellipse cx="0" cy="70" rx="200" ry="110" fill={`url(#${id("ha")})`} className="eye__underglow" />
           {/* the glow behind the eyeball fades as the lid shuts, and the lid's own skin is black */}
           <motion.g style={{ opacity: auraOpacity }}>
-            <path d={OPENING} fill={C.glow} filter={`url(#${id("b6")})`} opacity="0.28" transform="translate(0 8)" className="eye__aura" />
+            <path d={OPENING} fill={pal.glow} filter={`url(#${id("b6")})`} opacity="0.28" transform="translate(0 8)" className="eye__aura" />
           </motion.g>
           <path d={OPENING} fill="#000" />
 
-          {/* upper lashes and lid: steel, with a bevel inside the outline */}
-          <motion.path d={upperD} fill="none" stroke={C.glow} strokeWidth="5" filter={`url(#${id("b2")})`} opacity="0.22" />
+          {/* upper lashes and lid, with a bevel inside the outline */}
+          <motion.path d={upperD} fill="none" stroke={pal.glow} strokeWidth="5" filter={`url(#${id("b2")})`} opacity="0.22" />
           <motion.path d={upperD} fill={`url(#${id("la")})`} stroke={`url(#${id("s2")})`} strokeWidth="2.6" strokeLinejoin="round" />
           <g clipPath={`url(#${id("uc")})`}>
-            <motion.path d={upperD} fill="none" stroke="#8e8ea6" strokeWidth={UPPER_BEVEL_WIDTHS.band} opacity="0.42" />
-            <motion.path d={upperD} fill="none" stroke="#ffffff" strokeWidth={UPPER_BEVEL_WIDTHS.rim} opacity="0.4" />
+            <motion.path d={upperD} fill="none" stroke={pal.bevelBand} strokeWidth={UPPER_BEVEL_WIDTHS.band} opacity="0.42" />
+            <motion.path d={upperD} fill="none" stroke={pal.bevelRim} strokeWidth={UPPER_BEVEL_WIDTHS.rim} opacity="0.4" />
           </g>
           <g dangerouslySetInnerHTML={art.lower} />
 
@@ -228,7 +258,7 @@ export default function Eye({ state, size = 140, level = 0, dim, onClick, onMous
                       cx={d.x}
                       cy={d.y}
                       r={d.r}
-                      fill={C.dots}
+                      fill={pal.dots}
                       opacity={d.o}
                       className={d.tw >= 0 ? "eye__tw" : undefined}
                       style={d.tw >= 0 ? ({ animationDelay: `${(Math.round(d.tw * 12) / 12).toFixed(4)}s` } as React.CSSProperties) : undefined}
@@ -249,7 +279,7 @@ export default function Eye({ state, size = 140, level = 0, dim, onClick, onMous
                 </g>
                 <g dangerouslySetInnerHTML={art.socket} />
                 <motion.g style={{ ...BOX, transform: pupilTf }}>
-                  <circle r="24" fill={C.pupilGlow} filter={`url(#${id("b2")})`} className="eye__pupil-glow" />
+                  <circle r="24" fill={pal.pupilGlow} filter={`url(#${id("b2")})`} className="eye__pupil-glow" />
                   <circle r="21" fill={`url(#${id("pu")})`} className="eye__pupil" />
                   <g dangerouslySetInnerHTML={art.pupil} />
                 </motion.g>
@@ -262,7 +292,7 @@ export default function Eye({ state, size = 140, level = 0, dim, onClick, onMous
           {/* the lid's edge: a clean line where the lid meets the eye */}
           <g clipPath={`url(#${id("op")})`}>
             <motion.path d={edgeD} fill="none" stroke="#000" strokeWidth="9" strokeLinecap="round" style={{ opacity: edgeShade }} />
-            <motion.path d={edgeD} fill="none" stroke={C.line} strokeWidth="3" strokeLinecap="round" style={{ opacity: edgeOpacity }} />
+            <motion.path d={edgeD} fill="none" stroke={pal.lidEdge} strokeWidth="3" strokeLinecap="round" style={{ opacity: edgeOpacity }} />
           </g>
         </motion.g>
       </svg>

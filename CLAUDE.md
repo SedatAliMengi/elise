@@ -14,6 +14,8 @@ Tauri 2 (Rust) + React/TS/Vite. Single user ("Enigma"), local only.
     (create/update/delete/find_events, ask_clarification). Summary lines are built from real changes.
   - `overlay.rs` overlay window modes Hidden / Compact (hover eye) / Expanded; geometry in physical px.
   - `projects.rs` Projects view rules (project cards + task lists, Elise's own list = list id `elise`, tags `for_now` / `done`); UI in `src/projects/` (`ProjectsView`, `TaskList`, `Starfield`: canvas stars, no blur)
+  - **Nihil mode** (typing "nihil" to Elise): `lib/mode.ts` + `styles/nihil.css`. Colours are converted automatically from the existing CSS at the first switch;
+    colours set in code must go through `tint()` / `isNihil()`; the eye uses the `HOLLOW` palette in `eyeArt.ts`. Setting: `nihil` in `settings.json`.
   - `checklist.rs` yearly checklist rules (this year: add/remove/tick; past: tick only; future: locked → `overlay::show_oracle`)
     and the year-end prompt (Dec 31 from the default reminder time, once per year via `meta` table; missed → first week of Jan).
   - `tray.rs`, `settings.rs` (JSON settings + API key in Windows Credential Manager via `keyring`).
@@ -55,6 +57,8 @@ Elise's vault is `C:\Users\Sedat\Desktop\Files\Obsidian Vaults\Elise` (Changelog
 Troubleshooting, Voice Engine, ...). **At the end of every session that changes something, update
 `Current Situation.md` there** (keep its headings; plain `- ` bullets with indented details; never delete
 anything in **Planned**; set `updated:` to today), and add new bugs to `Bug Log.md` / entries to `Changelog.md`.
+**Owner's rule (2026-11-16):** do this after every new feature or fix without being asked, and **ask before
+every GitHub push** (never push on your own).
 
 **Projects feature rule (owner, 2026-11-15):** Elise (the app) only READS each project vault's
 `Current Situation.md` (ViEn's is `ViEn/For Elise.md`) and nothing else: no writing to any vault, no

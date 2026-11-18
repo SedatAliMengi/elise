@@ -1,3 +1,4 @@
+import { asksForNihil, requestMode } from "../lib/mode";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api, newSessionId, on } from "../lib/api";
@@ -32,7 +33,7 @@ const DISMISS =
   /^(?:ok(?:ay)?[, ]+)?(?:go away|bye|goodbye|good bye|dismiss(?:ed)?|never ?mind|that'?s (?:all|it)|thanks?(?: you)?(?:,? that'?s all)?|leave|you can go|close|cancel|stop|nothing(?: else)?|(?:no|nope|nah)(?:[, ]+(?:thanks?|thank you|that'?s (?:all|it)|i'?m good|nothing else))?|i'?m good|all good|hayır(?:[, ]+teşekkürler)?|yok(?:[, ]+teşekkürler)?|teşekkürler|bu kadar|gerek yok)[.!]*$/i;
 
 export default function CommandPanel({ settings, greet = true, placement, onEyeState, onLevel, onFinish, voiceSummoned, direct }: Props) {
-  const greeting = `Hello ${settings.userName || "Enigma"}, what is your command?`;
+  const greeting = "Hello, sir.";
   const voice = useVoiceStatus();
   const voiceRef = useRef(voice);
   voiceRef.current = voice;
@@ -262,6 +263,17 @@ export default function CommandPanel({ settings, greet = true, placement, onEyeS
   async function submit(raw?: string) {
     const t = (raw ?? text).trim();
     if (!t || phase === "thinking") return;
+    if (asksForNihil(t)) {
+      // Not a command: she blinks and the whole app changes (or changes back).
+      const next = !settingsRef.current.nihil;
+      stopMic("nihil");
+      setText("");
+      setSummary([]);
+      setBubble(next ? "Nihil." : "As you were, sir.");
+      requestMode(next);
+      api.setSettings({ ...settingsRef.current, nihil: next }).catch(() => {});
+      return;
+    }
     if (DISMISS.test(t)) {
       stopMic("sent away");
       setText("");

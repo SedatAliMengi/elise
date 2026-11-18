@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Eye from "../components/Eye";
 import { ASPECT } from "../components/eyeArt";
 import { api, ELISE_LIST } from "../lib/api";
+import { tint, useNihil } from "../lib/mode";
 import type { EyeState, Project, ProjectsBoard, ProjectStatus, ProjectTask } from "../lib/types";
 import Starfield from "./Starfield";
 import TaskList, { type TaskActions } from "./TaskList";
@@ -46,6 +47,7 @@ interface Slot {
 
 export default function ProjectsView({ onClose, onError }: Props) {
   const boxRef = useRef<HTMLDivElement>(null);
+  const nihil = useNihil();
   const [size, setSize] = useState({ w: 0, h: 0 });
   const [board, setBoard] = useState<ProjectsBoard | null>(null);
   /** The open list: a project id, ELISE_LIST, or nothing. */
@@ -286,7 +288,7 @@ export default function ProjectsView({ onClose, onError }: Props) {
               {slots.map((s, i) => {
                 const active = open === s.project.id || hover === s.project.id;
                 return (
-                  <g key={s.project.id} style={{ color: s.project.color }}>
+                  <g key={s.project.id} style={{ color: tint(s.project.color) }}>
                     <motion.path
                       fill="none"
                       stroke="currentColor"
@@ -309,6 +311,14 @@ export default function ProjectsView({ onClose, onError }: Props) {
               animate={{ x: eye.x, y: eye.y, opacity: open && !eliseOpen ? 0.5 : 1 }}
               transition={MOVE}
             >
+              {nihil && (
+                <svg className="pelise__rune" width={eyeW * 2.5} height={eyeW * 2.5} viewBox="-125 -125 250 250" style={{ marginLeft: -eyeW * 1.25, marginTop: -eyeW * 1.25 }} aria-hidden>
+                  <circle r="120" />
+                  <circle r="108" strokeDasharray="2 6" />
+                  <polygon points="0,-108 93.5,54 -93.5,54" />
+                  <polygon points="0,108 93.5,-54 -93.5,-54" />
+                </svg>
+              )}
               <div className="pelise__eye" style={{ width: eyeW, height: eyeH, marginLeft: -eyeW / 2, marginTop: -eyeH / 2 }}>
                 <Eye state={eyeState} size={eyeW} onClick={() => setOpen(eliseOpen ? null : ELISE_LIST)} title="Elise's own list" />
               </div>
@@ -413,7 +423,7 @@ function ProjectCard({ slot, from, isOpen, dim, delay, listMax, actions, onToggl
   return (
     <motion.div
       className={`pcard-anchor ${slot.right ? "right" : "left"} ${isOpen ? "open" : ""} ${p.status ? `is-${p.status}` : ""}`}
-      style={{ zIndex: isOpen ? 30 : 10, ["--accent" as string]: p.color }}
+      style={{ zIndex: isOpen ? 30 : 10, ["--accent" as string]: tint(p.color) }}
       initial={{ x: from.x, y: from.y, opacity: 0, scale: 0.5 }}
       animate={{ x: slot.x, y: slot.y, opacity: dim ? 0.3 : 1, scale: 1 }}
       exit={{ x: from.x, y: from.y, opacity: 0, scale: 0.5, transition: { duration: 0.3 } }}
@@ -485,7 +495,7 @@ function ProjectCard({ slot, from, isOpen, dim, delay, listMax, actions, onToggl
                 <div className="pcard__tools">
                   <div className="pcard__swatches">
                     {PROJECT_COLORS.map((c) => (
-                      <button key={c} className={c === p.color ? "on" : ""} style={{ background: c }} onClick={() => onUpdate({ color: c })} title="Card colour" />
+                      <button key={c} className={c === p.color ? "on" : ""} style={{ background: tint(c) }} onClick={() => onUpdate({ color: c })} title="Card colour" />
                     ))}
                   </div>
                   <button

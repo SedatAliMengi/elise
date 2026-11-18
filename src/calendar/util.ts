@@ -1,12 +1,14 @@
 import { addDays, addMinutes, differenceInMinutes, startOfDay } from "date-fns";
 import { fromNaive, toNaive } from "../lib/dates";
+import { tint } from "../lib/mode";
 import type { CalEvent, Occurrence } from "../lib/types";
 
 export type View = "year" | "month" | "week" | "day";
 
 export const EVENT_COLORS = ["#8b00ff", "#b44cff", "#d70000", "#ff4f8b", "#5b6cff", "#22b8cf", "#f2a93b", "#7c8a9e"];
 
-export const colorOf = (e: CalEvent) => e.color || EVENT_COLORS[0];
+/** An event's colour as shown (in Nihil mode: a shade of red). */
+export const colorOf = (e: CalEvent) => tint(e.color || EVENT_COLORS[0]);
 
 export interface Occ extends Occurrence {
   s: Date;
